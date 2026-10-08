@@ -1,6 +1,8 @@
-# CollabPro Android — prototipo de interfaz
+# CollabPro Android — prototipo y base DDD
 
 Aplicación Android en Kotlin y Jetpack Compose basada en las historias de usuario US-01 a US-30 de `C:\Users\fabio\Documents\report\README.md`. Contiene rutas navegables para empresas y creadores, formularios visuales y estados de ejemplo. No realiza autenticación, cobros, cargas de archivos, vinculación OAuth ni llamadas a una API. Los botones que representan esos procesos muestran estados locales de demostración.
+
+La **fase 2 de integración** está implementada: contratos REST, modelos reales, repositorios, casos de uso, Hilt, errores tipados y sesión cifrada. Las pantallas aún no utilizan esa infraestructura; no confundir el login de demostración con autenticación real. La estructura, contratos y configuración por entorno están en [Base móvil DDD V1](docs/BASE_MOVIL_DDD_V1.md). La siguiente fase conecta registro, login y recuperación, conforme al [plan final](docs/PLAN_IMPLEMENTACION_FINAL_V1.md).
 
 ## Recorridos y cobertura
 
@@ -22,9 +24,9 @@ US-01 a US-08 describen originalmente una **Landing Page web**. La app incluye s
 
 Los paquetes `features/identity`, `features/campaign`, `features/collaboration`, `features/billing` y `features/performance` corresponden a los cinco bounded contexts del informe:
 
-- `domain`: modelos y contratos del contexto.
-- `application`: casos de consulta usados para alimentar el prototipo.
-- `infrastructure`: repositorios de datos de muestra en memoria.
+- `domain`: modelos y contratos del contexto; los reales están en `model` y `repositories`.
+- `application`: casos de uso reales en `usecases`, separados de consultas del prototipo.
+- `infrastructure`: adapters REST, DTOs, mapeadores, DI y persistencia segura; repositorios Preview conservados exclusivamente para la maqueta.
 - `presentation`: pantallas Compose y estados locales de demostración.
 
 `navigation/AppState.kt` mantiene el rol, la ruta, la campaña elegida y el historial de navegación durante la sesión. `navigation/CollabApp.kt` conecta todas las pantallas. `core/designsystem` concentra componentes visuales reutilizables.

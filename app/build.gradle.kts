@@ -1,6 +1,22 @@
+import java.net.URI
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.hilt)
+    alias(libs.plugins.ksp)
+}
+
+val debugApiUrl = providers.gradleProperty("collabpro.debugBaseUrl")
+    .getOrElse("http://10.0.2.2:8081/api/v1/")
+val releaseApiUrl = providers.gradleProperty("collabpro.releaseBaseUrl")
+    .getOrElse("https://unconfigured.invalid/api/v1/")
+fun apiUrlLiteral(url: String, httpsRequired: Boolean): String {
+    val uri = URI(url)
+    require(uri.host != null && uri.userInfo == null && uri.query == null && uri.fragment == null)
+    require(uri.path == "/api/v1/") { "API URL must end in /api/v1/" }
+    require(uri.scheme == "https" || (!httpsRequired && uri.scheme == "http"))
+    return "\"$url\""
 }
 
 android {
@@ -22,22 +38,41 @@ android {
     }
 
     buildTypes {
+        debug {
+            buildConfigField("String", "API_BASE_URL", apiUrlLiteral(debugApiUrl, false))
+        }
         release {
+            buildConfigField("String", "API_BASE_URL", apiUrlLiteral(releaseApiUrl, true))
             optimization {
                 enable = false
             }
         }
     }
     compileOptions {
+        isCoreLibraryDesugaringEnabled = true
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 
 dependencies {
+    implementation(libs.hilt.android)
+    ksp(libs.hilt.compiler)
+    implementation(libs.retrofit.core)
+    implementation(libs.retrofit.gson)
+    implementation(libs.okhttp.core)
+    implementation(libs.gson)
+    implementation(libs.coroutines.android)
+    implementation(libs.androidx.lifecycle.viewmodel.compose)
+    implementation(libs.androidx.lifecycle.runtime.compose)
+    implementation(libs.androidx.navigation.compose)
+    coreLibraryDesugaring(libs.desugar)
+    testImplementation(libs.coroutines.test)
+    testImplementation(libs.mockwebserver)
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.compose.material3)
