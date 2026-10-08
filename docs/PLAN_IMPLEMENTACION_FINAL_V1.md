@@ -186,7 +186,7 @@ JWT y B01–B04 están implementados en backend por solicitud posterior. Validac
 
 ### Fase 2. Infraestructura móvil y modelos
 
-**Implementada el 8 de octubre de 2026.** Detalle y evidencia en `BASE_MOVIL_DDD_V1.md`: 25 operaciones iniciadas por Android y el callback de proveedor documentado por separado, modelos/puertos/casos de uso DDD, Hilt, configuración por entorno y sesión cifrada preparada. Las pantallas y previews siguen siendo prototipo; conectar UI empieza en fase 3, que continúa pendiente.
+**Implementada el 8 de octubre de 2026.** Detalle y evidencia en `BASE_MOVIL_DDD_V1.md`: 25 operaciones iniciadas por Android y el callback de proveedor documentado por separado, modelos/puertos/casos de uso DDD, Hilt, configuración por entorno y sesión cifrada preparada. La fase 3 ya conecta las pantallas de autenticación; las demás continúan como prototipo.
 
 Configurar Retrofit/OkHttp/Gson, Hilt/KSP, lifecycle/ViewModel, navegación y URL por entorno, siguiendo EasyVet sin copiar sus versiones indiscriminadamente. `INTERNET`, HTTP local solo debug, HTTPS release y desugaring para fechas en minSdk 24.
 
@@ -195,6 +195,8 @@ Modelar Account/Session/CreatorProfile/SocialAccount/AuthorizationAttempt y Camp
 **Validación:** contracts HTTP, Bearer solo en host/endpoints protegidos, 204, nulos, decimales, fechas y ApiError. Previews usan UiState de muestra sin Hilt/red.
 
 ### Fase 3. Registro, sesión y recuperación
+
+**Implementada el 8 de octubre de 2026.** `AUTENTICACION_MOVIL_V1.md` documenta las seis operaciones conectadas, el coordinador Application, ViewModel/Screens, sesión verificada, aislamiento de navegación, expiración y deep link de nueva contraseña. Se eliminaron login por cualquier password, selector de rol y errores simulados. Las pruebas incluyen MySQL y entrega SMTP a Mailpit, reset de un solo uso y revocación del JWT anterior. La comprobación visual/interacción en teléfono o AVD continúa pendiente por ausencia de dispositivo conectado; perfiles/redes y demás flujos siguen en fases 4–8.
 
 Conectar E01–E06: registro de ambos tipos → Login; rol del servidor; restauración verificada; expiración; logout local; deep link de nueva contraseña y 204. Quitar acceso por cualquier password y mensajes simulados. Contraseña mínima 8, máxima 128, input protegido.
 

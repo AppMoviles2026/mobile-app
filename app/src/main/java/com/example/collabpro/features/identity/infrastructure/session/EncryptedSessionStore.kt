@@ -11,6 +11,8 @@ import com.google.gson.Gson
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import java.time.Clock
 
 /** The JWT is opaque. Account type comes from the backend response, not a local JWT decoder. */
@@ -24,6 +26,8 @@ internal class EncryptedSessionStore(
     private var loaded = false
     private var session: Session? = null
     private var revision = 0L
+    private val revisions = MutableStateFlow(0L)
+    override val changes = revisions.asStateFlow()
     private val lock = Any()
 
     override suspend fun read(): Session? = withContext(io) { synchronized(lock) { load(); session } }
@@ -43,7 +47,7 @@ internal class EncryptedSessionStore(
                 if (!storage.write(encrypted)) return@synchronized storageFailure()
                 this@EncryptedSessionStore.session = session
                 loaded = true
-                revision++
+                changed()
                 ApiResult.Success(Unit)
             } catch (_: Exception) { storageFailure() }
         }
@@ -52,7 +56,7 @@ internal class EncryptedSessionStore(
     override suspend fun clear(): ApiResult<Unit> = withContext(io) { synchronized(lock) {
         session = null
         loaded = true
-        revision++
+        changed()
         try { if (storage.clear()) ApiResult.Success(Unit) else storageFailure() }
         catch (_: Exception) { storageFailure() }
     } }
@@ -70,7 +74,7 @@ internal class EncryptedSessionStore(
         if (isCurrent(credentials)) {
             session = null
             loaded = true
-            revision++
+            changed()
             try { storage.clear() } catch (_: Exception) { /* Still invalidated in this process. */ }
         }
     }
@@ -78,7 +82,7 @@ internal class EncryptedSessionStore(
     private fun load() {
         if (loaded) return
         loaded = true
-        revision++
+        changed()
         try {
             val encrypted = storage.read() ?: return
             val plain = cipher.decrypt(encrypted)
@@ -92,4 +96,5 @@ internal class EncryptedSessionStore(
     }
 
     private fun storageFailure() = ApiResult.Failure(ApiFailure(FailureKind.STORAGE, message = "No se pudo guardar o borrar la sesión de forma segura."))
+    private fun changed() { revision++; revisions.value = revision }
 }

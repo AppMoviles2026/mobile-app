@@ -3,6 +3,7 @@ package com.example.collabpro.features.identity.domain.repositories
 import com.example.collabpro.core.domain.ApiResult
 import com.example.collabpro.features.identity.domain.model.*
 import java.util.UUID
+import kotlinx.coroutines.flow.StateFlow
 
 interface IdentityRepository {
     suspend fun registerBrand(businessName: String, email: String, password: String): ApiResult<Account>
@@ -20,6 +21,8 @@ interface IdentityRepository {
 
 /** Stored session is a candidate; GET accounts/me must verify it before resuming a user flow. */
 interface SessionStore {
+    /** Changes only, never credentials in navigation/saved state. */
+    val changes: StateFlow<Long>
     suspend fun read(): Session?
     suspend fun save(session: Session): ApiResult<Unit>
     suspend fun clear(): ApiResult<Unit>

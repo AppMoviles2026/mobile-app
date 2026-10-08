@@ -1,8 +1,8 @@
-# CollabPro Android — prototipo y base DDD
+# CollabPro Android — DDD y autenticación real
 
-Aplicación Android en Kotlin y Jetpack Compose basada en las historias de usuario US-01 a US-30 de `C:\Users\fabio\Documents\report\README.md`. Contiene rutas navegables para empresas y creadores, formularios visuales y estados de ejemplo. No realiza autenticación, cobros, cargas de archivos, vinculación OAuth ni llamadas a una API. Los botones que representan esos procesos muestran estados locales de demostración.
+Aplicación Android en Kotlin y Jetpack Compose basada en el reporte. **Registro de empresa/creador, login, cuenta actual y recuperación de contraseña ya consumen el backend real.** El rol viene del servidor y la sesión JWT se guarda cifrada. Las otras pantallas US-12–US-30 conservan su recorrido de prototipo, identificado como vista previa; no realizan OAuth, campañas, cobros ni cargas de archivos reales todavía.
 
-La **fase 2 de integración** está implementada: contratos REST, modelos reales, repositorios, casos de uso, Hilt, errores tipados y sesión cifrada. Las pantallas aún no utilizan esa infraestructura; no confundir el login de demostración con autenticación real. La estructura, contratos y configuración por entorno están en [Base móvil DDD V1](docs/BASE_MOVIL_DDD_V1.md). La siguiente fase conecta registro, login y recuperación, conforme al [plan final](docs/PLAN_IMPLEMENTACION_FINAL_V1.md).
+Las fases 2 y 3 están implementadas. Consulta [Autenticación real: funcionamiento, ejecución y pruebas](docs/AUTENTICACION_MOVIL_V1.md), [Base móvil DDD](docs/BASE_MOVIL_DDD_V1.md) y el [plan final](docs/PLAN_IMPLEMENTACION_FINAL_V1.md). El siguiente paso es conectar perfil de creador y redes, sin implementar las historias posteriores del backlog.
 
 ## Recorridos y cobertura
 
@@ -27,9 +27,9 @@ Los paquetes `features/identity`, `features/campaign`, `features/collaboration`,
 - `domain`: modelos y contratos del contexto; los reales están en `model` y `repositories`.
 - `application`: casos de uso reales en `usecases`, separados de consultas del prototipo.
 - `infrastructure`: adapters REST, DTOs, mapeadores, DI y persistencia segura; repositorios Preview conservados exclusivamente para la maqueta.
-- `presentation`: pantallas Compose y estados locales de demostración.
+- `presentation`: ViewModel/UiState/Screens de autenticación real en `identity/presentation/auth`; otras pantallas aún de demostración.
 
-`navigation/AppState.kt` mantiene el rol, la ruta, la campaña elegida y el historial de navegación durante la sesión. `navigation/CollabApp.kt` conecta todas las pantallas. `core/designsystem` concentra componentes visuales reutilizables.
+`navigation/CollabApp.kt` separa rutas públicas, verificación de sesión, nueva contraseña y recorrido privado. El `AppState` privado se crea con la cuenta verificada; no restaura un rol o ruta privados desde preferencias de navegación. `core/designsystem` concentra componentes visuales reutilizables.
 
 ## Ejecutar
 
@@ -39,7 +39,9 @@ Abrir la carpeta en Android Studio y ejecutar `app`, o compilar desde la raíz c
 .\gradlew.bat :app:assembleDebug
 ```
 
-En el inicio se puede escoger **Empresa** o **Creador**. El formulario de inicio de sesión acepta cualquier correo y contraseña no vacíos para recorrer la maqueta. Los datos y cambios de pantalla no se conservan al reiniciar la aplicación.
+Primero inicia el backend en 8081 (8080 estaba ocupado por otros servicios): desde `C:/Users/fabio/Documents/platform`, ejecuta `docker compose up -d` y `.\mvnw.cmd spring-boot:run '-Dspring-boot.run.arguments=--server.port=8081'`. Debug usa `http://10.0.2.2:8081/api/v1/` para el emulador. Para un celular físico configura la IP del equipo como se explica en la guía de autenticación.
+
+El tipo **Empresa/Creador** solo se elige para registrarse. El registro exitoso lleva al login; no crea una sesión automáticamente. El login exige credenciales reales, sin selector de rol ni estados simulados. Al reiniciar se verifica la sesión cifrada con `GET accounts/me`. Cerrar sesión elimina la credencial local y el historial privado. En desarrollo, los correos se capturan en Mailpit (`http://localhost:8025`), no llegan a Gmail u otros buzones externos.
 
 ## Vistas previas y emulador
 

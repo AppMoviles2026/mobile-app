@@ -75,46 +75,6 @@ fun RolePickerScreen(app: AppState) {
 }
 
 @Composable
-fun RegisterScreen(app: AppState, brand: Boolean) {
-    var name by remember { mutableStateOf("") }; var email by remember { mutableStateOf("") }; var password by remember { mutableStateOf("") }; var attempted by remember { mutableStateOf(false) }; var duplicate by remember { mutableStateOf(false) }
-    Page(if (brand) "Crea tu cuenta empresa" else "Crea tu cuenta creador", subtitle = "Empieza con tus datos básicos. Podrás completar el perfil después.", onBack = app::back) {
-        item { Entry(if (brand) "Nombre de empresa" else "Nombre completo", name, { name = it }, error = attempted && name.isBlank()) }
-        item { Entry("Correo electrónico", email, { email = it }, error = attempted && !email.contains('@')) }
-        item { Entry("Contraseña", password, { password = it }, error = attempted && password.length < 6) }
-        if (duplicate) item { Notice("Esta cuenta ya existe. Prueba iniciar sesión o recuperar el acceso.") }
-        else if (attempted) item { Notice("Revisa los campos obligatorios. La contraseña debe tener al menos 6 caracteres.") }
-        item { Action("Crear cuenta") { attempted = true; if (name.isNotBlank() && email.contains('@') && password.length >= 6) { app.selectRole(if (brand) UserRole.BRAND else UserRole.CREATOR); app.go(if (brand) Route.BRAND_HOME else Route.CREATOR_HOME) } } }
-        item { TextButton(onClick = { duplicate = !duplicate }) { Text(if (duplicate) "Ocultar estado de correo existente" else "Ver estado: correo ya registrado") } }
-        item { Action("Ya tengo cuenta", { app.go(Route.LOGIN) }, secondary = true) }
-    }
-}
-
-@Composable
-fun LoginScreen(app: AppState) {
-    var email by remember { mutableStateOf("") }; var password by remember { mutableStateOf("") }; var error by remember { mutableStateOf(false) }
-    Page("Bienvenido de nuevo", subtitle = "Accede a tu espacio de colaboraciones.", onBack = app::back) {
-        item { Entry("Correo electrónico", email, { email = it }) }
-        item { Entry("Contraseña", password, { password = it }) }
-        if (error) item { Notice("Datos incompletos. Verifica tus credenciales.") }
-        item { Action("Iniciar sesión") { error = email.isBlank() || password.isBlank(); if (!error) app.home() } }
-        item { Action("Ver credenciales inválidas", { error = true }, secondary = true) }
-        item { TextButton(onClick = { app.go(Route.RECOVER) }) { Text("Olvidé mi contraseña") } }
-        item { Notice("Prototipo: usa cualquier correo y contraseña para explorar el rol seleccionado.") }
-        item { ChoiceRow(listOf("Empresa", "Creador"), if (app.role == UserRole.BRAND) "Empresa" else "Creador") { app.selectRole(if (it == "Empresa") UserRole.BRAND else UserRole.CREATOR) } }
-    }
-}
-
-@Composable
-fun RecoverScreen(app: AppState) {
-    var email by remember { mutableStateOf("") }; var sent by remember { mutableStateOf(false) }
-    Page("Recuperar acceso", subtitle = "Ingresa el correo asociado a tu cuenta.", onBack = app::back) {
-        item { Entry("Correo electrónico", email, { email = it }) }
-        item { Action("Continuar") { sent = email.contains('@') } }
-        if (sent) item { Notice("Vista previa: revisa tu correo para continuar la recuperación.") }
-    }
-}
-
-@Composable
 fun ProfileScreen(app: AppState, brand: Boolean) {
     var name by remember { mutableStateOf(if (brand) app.brandProfile.name else app.creatorProfile.name) }
     var area by remember { mutableStateOf(if (brand) app.brandProfile.category else app.creatorProfile.niche) }

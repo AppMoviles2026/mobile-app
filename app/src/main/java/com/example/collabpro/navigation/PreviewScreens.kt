@@ -6,6 +6,8 @@ import com.example.collabpro.features.billing.presentation.*
 import com.example.collabpro.features.campaign.presentation.*
 import com.example.collabpro.features.collaboration.presentation.*
 import com.example.collabpro.features.identity.presentation.*
+import com.example.collabpro.features.identity.presentation.auth.*
+import com.example.collabpro.features.identity.domain.model.AccountType
 import com.example.collabpro.features.performance.presentation.*
 import com.example.collabpro.ui.theme.CollabProTheme
 
@@ -33,16 +35,25 @@ import com.example.collabpro.ui.theme.CollabProTheme
 @Composable private fun RolePickerPreview() = preview { RolePickerScreen(AppState()) }
 
 @Preview(name = "Registro • Empresa", showBackground = true, showSystemUi = true)
-@Composable private fun RegisterBrandPreview() = preview { RegisterScreen(AppState(), true) }
+@Composable private fun RegisterBrandPreview() = preview { RegisterScreen(RegistrationUiState(type = AccountType.BRAND)) }
 
 @Preview(name = "Registro • Creador", showBackground = true, showSystemUi = true)
-@Composable private fun RegisterCreatorPreview() = preview { RegisterScreen(AppState(), false) }
+@Composable private fun RegisterCreatorPreview() = preview { RegisterScreen(RegistrationUiState(type = AccountType.CREATOR)) }
 
 @Preview(name = "Inicio de sesión", showBackground = true, showSystemUi = true)
-@Composable private fun LoginPreview() = preview { LoginScreen(AppState()) }
+@Composable private fun LoginPreview() = preview { LoginScreen(LoginUiState()) }
 
 @Preview(name = "Recuperar acceso", showBackground = true, showSystemUi = true)
-@Composable private fun RecoverPreview() = preview { RecoverScreen(AppState()) }
+@Composable private fun RecoverPreview() = preview { RecoverScreen(RecoveryUiState()) }
+
+@Preview(name = "Nueva contraseña", showBackground = true, showSystemUi = true)
+@Composable private fun ResetPasswordPreview() = preview { ResetPasswordScreen(ResetPasswordUiState(linkValid = true)) }
+
+@Preview(name = "Contraseña restablecida", showBackground = true, showSystemUi = true)
+@Composable private fun ResetCompletedPreview() = preview { ResetPasswordScreen(ResetPasswordUiState(completed = true)) }
+
+@Preview(name = "Verificando sesión", showBackground = true, showSystemUi = true)
+@Composable private fun SessionGatePreview() = preview { SessionGateScreen() }
 
 @Preview(name = "Panel de empresa", showBackground = true, showSystemUi = true)
 @Composable private fun BrandHomePreview() = preview {

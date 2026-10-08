@@ -1,6 +1,6 @@
 # Base móvil DDD V1 — fase 2
 
-Implementada el 8 de octubre de 2026 en CollabPro. Sigue el orden del `PLAN_IMPLEMENTACION_FINAL_V1.md` y la separación de capas de EasyVet. **La infraestructura está preparada; las pantallas existentes todavía son un prototipo y no invocan estos casos de uso.** Esta entrega no implementa funciones de las historias posteriores a las primeras 18 posiciones del backlog.
+Implementada el 8 de octubre de 2026 en CollabPro. Sigue el orden del `PLAN_IMPLEMENTACION_FINAL_V1.md` y la separación de capas de EasyVet. Este documento describe la base de fase 2. **Actualización: la fase 3 ya conecta autenticación y recuperación; consulta `AUTENTICACION_MOVIL_V1.md`. Las demás pantallas todavía son prototipo.** No se implementan funciones de las historias posteriores a las primeras 18 posiciones del backlog.
 
 ## Capas y límites
 
@@ -97,6 +97,6 @@ Resultado de esta entrega: **42 tests aprobados** (41 de la base y 1 previo), `a
 
 El cifrado se prueba con una clave AES JVM y un storage en memoria; Android Keystore, instalación, ejecución y renderizado de Preview deben validarse en dispositivo/Android Studio. No hay dispositivo/emulador conectado para esas comprobaciones durante esta entrega. Los servicios del backend y los proveedores OAuth reales no se ejecutan en estas pruebas móviles.
 
-Sigue **fase 3: conectar registro, login, restauración verificada de sesión y recuperación**. Allí se incorporarán ViewModels concretos, Screens con UiState/callbacks, navegación autenticada y limpieza de estados simulados de esas pantallas. Después: perfil/redes (4), creación de campañas (5), exploración (6), postulaciones (7) y limpieza/aceptación integral (8).
+La **fase 3 ya está implementada**, con su guía y evidencia en `AUTENTICACION_MOVIL_V1.md`. Sigue perfil/redes (4), creación de campañas (5), exploración (6), postulaciones (7) y limpieza/aceptación integral (8). Las referencias a integración futura de autenticación en la descripción original de esta base son ahora históricas.
 
 Referencias de configuración: [Hilt Gradle](https://dagger.dev/hilt/gradle-setup), [Kotlin integrado en AGP](https://developer.android.com/build/migrate-to-built-in-kotlin). Se utiliza Kotlin integrado en AGP 9: no se añade el plugin Kotlin Android antiguo.

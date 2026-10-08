@@ -14,6 +14,8 @@ import com.example.collabpro.features.billing.application.LoadBillingPreview
 import com.example.collabpro.features.billing.infrastructure.PreviewBilling
 import com.example.collabpro.features.performance.application.LoadResultsPreview
 import com.example.collabpro.features.performance.infrastructure.PreviewResults
+import com.example.collabpro.features.identity.domain.model.Account
+import com.example.collabpro.features.identity.domain.model.AccountType
 
 enum class UserRole { BRAND, CREATOR }
 
@@ -28,7 +30,7 @@ enum class Route {
     COMPENSATION, RESULTS, HISTORY, HISTORY_DETAIL
 }
 
-class AppState {
+class AppState(val authenticatedAccount: Account? = null) {
     val campaigns: List<Campaign> = BrowseCampaigns(PreviewCampaigns)()
     private val profiles = LoadProfiles(PreviewProfiles)
     val brandProfile = profiles.brand()
@@ -38,9 +40,9 @@ class AppState {
     val samplePlan = billing.plan()
     val sampleCompensation = billing.compensation()
     val sampleMetrics = LoadResultsPreview(PreviewResults)()
-    var route by mutableStateOf(Route.WELCOME)
+    var route by mutableStateOf(if (authenticatedAccount == null) Route.WELCOME else if (authenticatedAccount.accountType == AccountType.BRAND) Route.BRAND_HOME else Route.CREATOR_HOME)
         private set
-    var role by mutableStateOf(UserRole.BRAND)
+    var role by mutableStateOf(if (authenticatedAccount?.accountType == AccountType.CREATOR) UserRole.CREATOR else UserRole.BRAND)
         private set
     var campaignId by mutableStateOf(1)
         private set
@@ -49,6 +51,10 @@ class AppState {
     private val backStack = mutableListOf<Route>()
 
     fun go(destination: Route) {
+        if (authenticatedAccount == null && destination.ordinal >= Route.BRAND_HOME.ordinal) return
+        if (authenticatedAccount != null && destination.ordinal < Route.BRAND_HOME.ordinal) return
+        if (authenticatedAccount != null && ((destination == Route.BRAND_HOME && role != UserRole.BRAND) ||
+            (destination == Route.CREATOR_HOME && role != UserRole.CREATOR))) return
         if (route == destination) return
         backStack.add(route)
         variant = ""
@@ -56,26 +62,31 @@ class AppState {
     }
 
     fun back() {
-        route = if (backStack.isNotEmpty()) backStack.removeAt(backStack.lastIndex) else Route.WELCOME
+        route = if (backStack.isNotEmpty()) backStack.removeAt(backStack.lastIndex)
+            else if (authenticatedAccount == null) Route.WELCOME else if (role == UserRole.BRAND) Route.BRAND_HOME else Route.CREATOR_HOME
         variant = ""
     }
 
-    fun selectRole(userRole: UserRole) { role = userRole }
+    fun selectRole(userRole: UserRole) { if (authenticatedAccount == null) role = userRole }
     fun selectCampaign(id: Int) { campaignId = id }
     fun home() { go(if (role == UserRole.BRAND) Route.BRAND_HOME else Route.CREATOR_HOME) }
 
     fun snapshot(): List<String> = listOf(route.name, role.name, campaignId.toString(), variant, language, backStack.joinToString(",") { it.name })
 
     fun restore(values: List<String>) {
+        if (authenticatedAccount != null) return
         if (values.size < 6) return
         route = runCatching { Route.valueOf(values[0]) }.getOrDefault(Route.WELCOME)
+        if (route.ordinal >= Route.BRAND_HOME.ordinal) route = Route.WELCOME
         role = runCatching { UserRole.valueOf(values[1]) }.getOrDefault(UserRole.BRAND)
         campaignId = values[2].toIntOrNull() ?: 1
         variant = values[3]
         language = values[4]
         backStack.clear()
         values[5].split(',').filter { it.isNotBlank() }.forEach { name ->
-            runCatching { Route.valueOf(name) }.getOrNull()?.let(backStack::add)
+            runCatching { Route.valueOf(name) }.getOrNull()?.takeIf { it.ordinal < Route.BRAND_HOME.ordinal }?.let(backStack::add)
         }
     }
+
+    fun resetToLogin() { backStack.clear(); variant = ""; route = Route.LOGIN }
 }
