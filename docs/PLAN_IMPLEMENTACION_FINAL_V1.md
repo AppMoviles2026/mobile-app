@@ -196,7 +196,7 @@ Modelar Account/Session/CreatorProfile/SocialAccount/AuthorizationAttempt y Camp
 
 ### Fase 3. Registro, sesión y recuperación
 
-**Implementada el 8 de octubre de 2026.** `AUTENTICACION_MOVIL_V1.md` documenta las seis operaciones conectadas, el coordinador Application, ViewModel/Screens, sesión verificada, aislamiento de navegación, expiración y deep link de nueva contraseña. Se eliminaron login por cualquier password, selector de rol y errores simulados. Las pruebas incluyen MySQL y entrega SMTP a Mailpit, reset de un solo uso y revocación del JWT anterior. La comprobación visual/interacción en teléfono o AVD continúa pendiente por ausencia de dispositivo conectado. La fase 4 también está implementada; las fases 5–8 siguen pendientes.
+**Implementada el 8 de octubre de 2026.** `AUTENTICACION_MOVIL_V1.md` documenta las seis operaciones conectadas, el coordinador Application, ViewModel/Screens, sesión verificada, aislamiento de navegación, expiración y deep link de nueva contraseña. Se eliminaron login por cualquier password, selector de rol y errores simulados. Las pruebas incluyen MySQL y entrega SMTP a Mailpit, reset de un solo uso y revocación del JWT anterior. La comprobación visual/interacción en teléfono o AVD continúa pendiente por ausencia de dispositivo conectado. Las fases 4 y 5 también están implementadas; las fases 6–8 siguen pendientes.
 
 Conectar E01–E06: registro de ambos tipos → Login; rol del servidor; restauración verificada; expiración; logout local; deep link de nueva contraseña y 204. Quitar acceso por cualquier password y mensajes simulados. Contraseña mínima 8, máxima 128, input protegido.
 
@@ -213,6 +213,8 @@ Conectar E07/E08 con los cinco campos editables, incluida audiencia, y precarga 
 **Validación:** guardado real tras reinicio, errores por campo, duplicado social, rechazo, intento vencido, cambio de cuenta, callback repetido y retorno sin completar. Nunca simular vínculo ante PROVIDER_NOT_CONFIGURED.
 
 ### Fase 5. Creación, condiciones y gestión limitada de campañas
+
+**Implementada el 8 de octubre de 2026.** Guía `CAMPANAS_Y_CONDICIONES_V1.md`: creación con clave estable, condiciones completas, publicación confirmada, conservación cifrada por cuenta y checkpoints para éxitos parciales. Mis campañas paginado y detalle por UUID permiten retomar DRAFT, descartarlo o cerrar postulaciones en OPEN sin activar historias futuras. Metadatos bloqueados tras creación y resultados inciertos verificados por GET; comparación de condiciones independiente del orden de UUID. Integración MySQL con pérdida de respuestas tras commit y regresiones de sesión; ejecución visual en teléfono/AVD pendiente. El backend existente no requirió cambios.
 
 Wizard paso 1 y paso 2 mantienen un formulario controlado local hasta “Guardar borrador”/“Publicar”. Así se pueden corregir metadatos antes de crear, sin implementar el PATCH futuro. “Continuar a condiciones” es navegación del formulario, no confirma una creación remota.
 

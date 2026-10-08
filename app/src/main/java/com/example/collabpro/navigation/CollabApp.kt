@@ -25,20 +25,23 @@ import com.example.collabpro.features.identity.presentation.*
 import com.example.collabpro.features.identity.presentation.auth.*
 import com.example.collabpro.features.identity.application.auth.SessionState
 import com.example.collabpro.features.identity.presentation.profile.*
+import com.example.collabpro.features.campaign.presentation.manage.*
+import com.example.collabpro.features.campaign.application.drafts.PreparationGoal
 import com.example.collabpro.features.performance.presentation.*
 
 @Composable
-fun CollabApp(authentication: AuthenticationViewModel, creatorIdentity: CreatorIdentityViewModel) {
+fun CollabApp(authentication: AuthenticationViewModel, creatorIdentity: CreatorIdentityViewModel, brandCampaigns: BrandCampaignViewModel) {
     Surface(Modifier.fillMaxSize()) {
-        Box(Modifier.fillMaxSize().safeDrawingPadding()) { AuthenticationContent(authentication, creatorIdentity) }
+        Box(Modifier.fillMaxSize().safeDrawingPadding()) { AuthenticationContent(authentication, creatorIdentity, brandCampaigns) }
     }
 }
 
 @Composable
-private fun AuthenticationContent(authentication: AuthenticationViewModel, creatorIdentity: CreatorIdentityViewModel) {
+private fun AuthenticationContent(authentication: AuthenticationViewModel, creatorIdentity: CreatorIdentityViewModel, brandCampaigns: BrandCampaignViewModel) {
     val session by authentication.session.collectAsStateWithLifecycle()
     val ui by authentication.ui.collectAsStateWithLifecycle()
     val identityUi by creatorIdentity.ui.collectAsStateWithLifecycle()
+    val campaignUi by brandCampaigns.ui.collectAsStateWithLifecycle()
     val publicApp = rememberSaveable(saver = Saver<AppState, List<String>>(save = { it.snapshot() }, restore = { AppState().apply { restore(it) } })) { AppState() }
     LaunchedEffect(authentication) { authentication.events.collect { publicApp.resetToLogin() } }
     LaunchedEffect(session) {
@@ -63,7 +66,8 @@ private fun AuthenticationContent(authentication: AuthenticationViewModel, creat
             // Not saveable: re-verification and account changes always get a clean private back stack.
             val app = remember { AppState(current.account) }
             LaunchedEffect(current.account) { app.updateAccount(current.account) }
-            PrivateRoutes(app, authentication::signOut, creatorIdentity, identityUi)
+            PrivateRoutes(app, authentication::signOut, creatorIdentity, identityUi, brandCampaigns,
+                campaignUi.takeIf { it.ownerId == current.account.accountId } ?: BrandCampaignUiState())
         }
     }
 }
@@ -103,7 +107,19 @@ private fun PublicRoutes(app: AppState, ui: AuthenticationUiState, notice: Strin
 }
 
 @Composable
-private fun PrivateRoutes(app: AppState, onSignOut: () -> Unit, creatorIdentity: CreatorIdentityViewModel, identityUi: CreatorIdentityUiState) {
+private fun PrivateRoutes(app: AppState, onSignOut: () -> Unit, creatorIdentity: CreatorIdentityViewModel, identityUi: CreatorIdentityUiState,
+    brandCampaigns: BrandCampaignViewModel, campaignUi: BrandCampaignUiState) {
+    LaunchedEffect(campaignUi.navigate) {
+        if (app.role == UserRole.BRAND) campaignUi.navigate?.let { destination ->
+            when (destination) {
+                CampaignView.LIST -> app.go(Route.BRAND_CAMPAIGNS)
+                CampaignView.BASICS -> { if (app.route == Route.CAMPAIGN_TERMS) app.back(); if (app.route != Route.CAMPAIGN_FORM) app.go(Route.CAMPAIGN_FORM) }
+                CampaignView.TERMS -> app.go(Route.CAMPAIGN_TERMS)
+                CampaignView.DETAIL -> app.go(Route.CAMPAIGN_DETAIL)
+            }
+            brandCampaigns.consumeNavigation()
+        }
+    }
     LaunchedEffect(identityUi.showSocial) {
         if (identityUi.showSocial && app.role == UserRole.CREATOR) { app.go(Route.SOCIAL_ACCOUNTS); creatorIdentity.consumeSocialNavigation() }
     }
@@ -111,11 +127,14 @@ private fun PrivateRoutes(app: AppState, onSignOut: () -> Unit, creatorIdentity:
         when (app.route) {
             Route.CREATOR_PROFILE -> if (app.role == UserRole.CREATOR) creatorIdentity.loadProfile()
             Route.SOCIAL_ACCOUNTS -> if (app.role == UserRole.CREATOR) creatorIdentity.loadSocialAccounts()
+            Route.BRAND_CAMPAIGNS -> if (app.role == UserRole.BRAND) brandCampaigns.loadCampaigns(campaignUi.campaigns.page?.page ?: 0)
             else -> Unit
         }
     }
     val home = if (app.role == UserRole.BRAND) Route.BRAND_HOME else Route.CREATOR_HOME
-    BackHandler(enabled = app.route != home) { app.back() }
+    BackHandler(enabled = app.route != home) {
+        if (app.role == UserRole.BRAND && app.route == Route.CAMPAIGN_TERMS) brandCampaigns.backToBasics() else app.back()
+    }
     val tabs = if (app.role == UserRole.BRAND) listOf(
         Triple("Inicio", "⌂", Route.BRAND_HOME), Triple("Campañas", "▣", Route.BRAND_CAMPAIGNS), Triple("Colaborar", "◇", Route.COLLABORATIONS), Triple("Perfil", "○", Route.BRAND_PROFILE)
     ) else listOf(
@@ -129,7 +148,8 @@ private fun PrivateRoutes(app: AppState, onSignOut: () -> Unit, creatorIdentity:
                 TextButton(onClick = onSignOut) { Text("Cerrar sesión") }
             }
             identityUi.externalNotice?.let { Text(it, Modifier.padding(horizontal = 16.dp), style = MaterialTheme.typography.labelSmall) }
-            if (app.route != home && app.route !in listOf(Route.CREATOR_PROFILE, Route.SOCIAL_ACCOUNTS)) Text("Vista previa • esta función aún no está conectada", Modifier.padding(horizontal = 16.dp, vertical = 4.dp), style = MaterialTheme.typography.labelSmall)
+            val connectedCampaign = app.role == UserRole.BRAND && app.route in listOf(Route.BRAND_CAMPAIGNS, Route.CAMPAIGN_FORM, Route.CAMPAIGN_TERMS, Route.CAMPAIGN_DETAIL)
+            if (app.route != home && !connectedCampaign && app.route !in listOf(Route.CREATOR_PROFILE, Route.SOCIAL_ACCOUNTS)) Text("Vista previa • esta función aún no está conectada", Modifier.padding(horizontal = 16.dp, vertical = 4.dp), style = MaterialTheme.typography.labelSmall)
         }
     }, bottomBar = {
         NavigationBar {
@@ -151,12 +171,21 @@ private fun PrivateRoutes(app: AppState, onSignOut: () -> Unit, creatorIdentity:
                     creatorIdentity::loadSocialAccounts, creatorIdentity::checkAuthorization, creatorIdentity::reopenBrowser,
                     creatorIdentity::forgetAttempt, app::back)
                 Route.CAMPAIGN_SEARCH -> CampaignSearchScreen(app)
-                Route.CAMPAIGN_DETAIL -> CampaignDetailScreen(app)
+                Route.CAMPAIGN_DETAIL -> if (app.role == UserRole.BRAND) OwnedCampaignDetailScreen(campaignUi.detail,
+                    onRetry = { campaignUi.detail.id?.let(brandCampaigns::openDetails) }, onEdit = brandCampaigns::editSelected,
+                    onDiscard = { brandCampaigns.discardOrClose(true) }, onClose = { brandCampaigns.discardOrClose(false) }, onBack = app::back)
+                    else CampaignDetailScreen(app)
                 Route.APPLICATION_FORM -> ApplicationFormScreen(app)
                 Route.MY_APPLICATIONS -> MyApplicationsScreen(app)
-                Route.BRAND_CAMPAIGNS -> BrandCampaignsScreen(app)
-                Route.CAMPAIGN_FORM -> CampaignFormScreen(app)
-                Route.CAMPAIGN_TERMS -> CampaignTermsScreen(app)
+                Route.BRAND_CAMPAIGNS -> OwnCampaignsScreen(campaignUi.campaigns, campaignUi.editor, brandCampaigns::openEditor,
+                    brandCampaigns::newDraft, brandCampaigns::openDetails, brandCampaigns::loadCampaigns, app::back)
+                Route.CAMPAIGN_FORM -> CampaignBasicsScreen(campaignUi.editor, brandCampaigns::editBasics, brandCampaigns::continueToConditions,
+                    onSave = { brandCampaigns.prepare(PreparationGoal.BASIC_DRAFT) }, onCheck = brandCampaigns::checkServer, onBack = app::back)
+                Route.CAMPAIGN_TERMS -> CampaignConditionsScreen(campaignUi.editor, brandCampaigns::editConditions,
+                    brandCampaigns::addRequirement, brandCampaigns::addDeliverable,
+                    onSave = { brandCampaigns.prepare(PreparationGoal.CONDITIONS) }, onPublish = { brandCampaigns.prepare(PreparationGoal.PUBLICATION) },
+                    onCheck = brandCampaigns::checkServer, onReload = brandCampaigns::reloadEditor,
+                    onList = { app.go(Route.BRAND_CAMPAIGNS) }, onBack = brandCampaigns::backToBasics)
                 Route.APPLICANTS -> ApplicantsScreen(app)
                 Route.APPLICANT_DETAIL -> ApplicantDetailScreen(app)
                 Route.AGREEMENT -> AgreementScreen(app)

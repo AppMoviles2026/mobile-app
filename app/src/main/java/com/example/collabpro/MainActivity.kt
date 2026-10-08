@@ -10,6 +10,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import com.example.collabpro.features.identity.presentation.auth.AuthenticationViewModel
 import com.example.collabpro.features.identity.presentation.profile.CreatorIdentityViewModel
+import com.example.collabpro.features.campaign.presentation.manage.BrandCampaignViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
@@ -22,6 +23,7 @@ import dagger.hilt.android.AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     private val authentication: AuthenticationViewModel by viewModels()
     private val creatorIdentity: CreatorIdentityViewModel by viewModels()
+    private val brandCampaigns: BrandCampaignViewModel by viewModels()
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         receiveIdentityLink(intent)
@@ -38,7 +40,7 @@ class MainActivity : ComponentActivity() {
         }
         enableEdgeToEdge()
         setContent {
-            CollabProTheme { CollabApp(authentication, creatorIdentity) }
+            CollabProTheme { CollabApp(authentication, creatorIdentity, brandCampaigns) }
         }
     }
 

@@ -10,47 +10,7 @@ import com.example.collabpro.core.designsystem.*
 import com.example.collabpro.navigation.AppState
 import com.example.collabpro.navigation.Route
 
-@Composable
-fun BrandCampaignsScreen(app: AppState) {
-    Page("Mis campañas", subtitle = "Organiza tus oportunidades y revisa las postulaciones.", onBack = app::back) {
-        item { Action("Crear campaña") { app.go(Route.CAMPAIGN_FORM) } }
-        app.campaigns.forEach { campaign -> item {
-            LinkCard(campaign.title, "${campaign.category} • ${campaign.deadline} • ${campaign.compensation}", { app.selectCampaign(campaign.id); app.go(Route.CAMPAIGN_DETAIL) }, campaign.status)
-        } }
-    }
-}
-
-@Composable
-fun CampaignFormScreen(app: AppState) {
-    var title by remember { mutableStateOf("") }; var objective by remember { mutableStateOf("") }; var category by remember { mutableStateOf("Gastronomía") }; var audience by remember { mutableStateOf("") }; var error by remember { mutableStateOf(false) }
-    Page("Nueva campaña", eyebrow = "PASO 1 DE 2", subtitle = "Describe el objetivo y a quién quieres llegar.", onBack = app::back) {
-        item { Entry("Título de campaña", title, { title = it }, error = error && title.isBlank()) }
-        item { Entry("Objetivo", objective, { objective = it }, singleLine = false, error = error && objective.isBlank()) }
-        item { ChoiceRow(listOf("Gastronomía", "Belleza", "Moda", "Servicios"), category) { category = it } }
-        item { Entry("Público objetivo", audience, { audience = it }, error = error && audience.isBlank()) }
-        if (error) item { Notice("Completa el título, objetivo y público antes de continuar.") }
-        item { Action("Continuar a condiciones") { error = title.isBlank() || objective.isBlank() || audience.isBlank(); if (!error) app.go(Route.CAMPAIGN_TERMS) } }
-        item { Notice("La campaña será visible cuando completes también sus condiciones.") }
-    }
-}
-
-@Composable
-fun CampaignTermsScreen(app: AppState) {
-    var requirements by remember { mutableStateOf("") }; var deliverables by remember { mutableStateOf("") }; var deadline by remember { mutableStateOf("") }; var compensation by remember { mutableStateOf("") }; var error by remember { mutableStateOf(false) }; var published by remember { mutableStateOf(false) }; var incompatible by remember { mutableStateOf(false) }
-    Page("Condiciones de campaña", eyebrow = "PASO 2 DE 2", subtitle = "Define exactamente qué esperas y qué recibirá el creador.", onBack = app::back) {
-        item { Entry("Requisitos del creador", requirements, { requirements = it }, singleLine = false) }
-        item { Entry("Entregables", deliverables, { deliverables = it }, singleLine = false) }
-        item { Entry("Fecha límite (dd/mm/aaaa)", deadline, { deadline = it }) }
-        item { Entry("Compensación (monto o canje)", compensation, { compensation = it }) }
-        if (error) item { Notice("Completa las condiciones y usa una fecha válida antes de publicar.") }
-        if (incompatible) item { Notice("Estas condiciones son incompatibles con las fechas de la campaña. Revísalas antes de guardar.") }
-        if (published) item { Notice("Vista previa de campaña publicada. Encontrarás tus campañas en el panel de empresa.") }
-        item { Action("Publicar campaña") { error = requirements.isBlank() || deliverables.isBlank() || !deadline.contains('/') || compensation.isBlank(); published = !error } }
-        item { Action("Ver condiciones incompatibles", { incompatible = true }, secondary = true) }
-        if (published) item { Action("Ir a mis campañas", { app.go(Route.BRAND_CAMPAIGNS) }, secondary = true) }
-    }
-}
-
+// Creator exploration and applications remain isolated prototypes until their integration phases.
 @Composable
 fun CampaignSearchScreen(app: AppState) {
     var query by remember { mutableStateOf("") }; var filter by remember { mutableStateOf("Todas") }

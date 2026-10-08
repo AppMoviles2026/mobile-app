@@ -93,4 +93,4 @@ Un UUID inventado debe mostrar error, nunca vinculación. Verificar manualmente 
 
 Referencias Android: [deep links y pruebas con adb](https://developer.android.com/training/app-links/create-deeplinks), [límites de SavedStateHandle](https://developer.android.com/topic/libraries/architecture/viewmodel/viewmodel-savedstate), [coroutines y lifecycle](https://developer.android.com/topic/libraries/architecture/coroutines).
 
-Siguiente fase: creación de campañas, condiciones y gestión limitada; no se implementó en esta entrega.
+La fase 5 de campañas ya está implementada en una entrega posterior; consulta `CAMPANAS_Y_CONDICIONES_V1.md`. Sigue exploración y detalle para el creador.

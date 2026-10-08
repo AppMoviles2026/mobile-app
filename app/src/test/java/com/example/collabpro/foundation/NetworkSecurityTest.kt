@@ -20,6 +20,9 @@ import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import java.io.IOException
 import java.net.SocketTimeoutException
+import com.example.collabpro.core.application.security.ExpectedAccount
+import kotlinx.coroutines.withContext
+import java.util.UUID
 
 class NetworkSecurityTest {
     private lateinit var server: MockWebServer
@@ -41,6 +44,18 @@ class NetworkSecurityTest {
     @After fun teardown() { server.shutdown() }
 
     private fun kind(result: ApiResult<*>) = (result as ApiResult.Failure).error.kind
+    @Test fun `queued write cannot acquire a different account after switching sessions`() = runTest {
+        val expected = ExpectedAccount(UUID.randomUUID(), sessions.current!!.expiresAt)
+        var sent = false
+        val result = withContext(expected) { executor.protectedUnit { sent = true; Response.success(Unit) } }
+        assertEquals(FailureKind.SESSION_CHANGED, kind(result)); assertFalse(sent); assertNotNull(sessions.current)
+    }
+    @Test fun `queued request cannot acquire a new login of the same account with another expiry`() = runTest {
+        val expected = ExpectedAccount(sessions.current!!.accountId, sessions.current!!.expiresAt.minusSeconds(1))
+        var sent = false
+        val result = withContext(expected) { executor.protectedCall({ sent = true; Response.success("value") }) { it } }
+        assertEquals(FailureKind.SESSION_CHANGED, kind(result)); assertFalse(sent); assertEquals(0, server.requestCount)
+    }
 
     @Test fun `protected 401 invalidates the current session`() = runTest {
         server.enqueue(MockResponse().setResponseCode(401).setBody("""{"code":"INVALID_TOKEN","message":"Sesión inválida","fieldErrors":{}}"""))

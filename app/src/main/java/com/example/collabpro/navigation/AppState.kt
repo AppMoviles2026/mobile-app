@@ -63,6 +63,7 @@ class AppState(authenticatedAccount: Account? = null) {
             (destination == Route.CREATOR_HOME && role != UserRole.CREATOR))) return
         if (authenticatedAccount != null && ((destination in listOf(Route.CREATOR_PROFILE, Route.SOCIAL_ACCOUNTS) && role != UserRole.CREATOR) ||
             (destination == Route.BRAND_PROFILE && role != UserRole.BRAND))) return
+        if (authenticatedAccount != null && destination in listOf(Route.BRAND_CAMPAIGNS, Route.CAMPAIGN_FORM, Route.CAMPAIGN_TERMS) && role != UserRole.BRAND) return
         if (route == destination) return
         backStack.add(route)
         variant = ""

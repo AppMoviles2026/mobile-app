@@ -92,6 +92,6 @@ Las tres pruebas Compose instrumentadas de autenticación están preparadas en `
 
 Los servicios de prueba se crean por separado de tus contenedores SmartQuote y se retiran al finalizar. No se borran bases/volúmenes del proyecto ni se modifican servicios del usuario.
 
-La fase de perfil del creador y redes ya está implementada; consulta `PERFIL_CREADOR_Y_REDES_V1.md` para el retorno OAuth, configuración y nuevas pruebas. Los otros contextos/pantallas continúan explícitamente como prototipo; sigue la creación de campañas.
+Perfil/redes y preparación de campañas ya están implementados; consulta `PERFIL_CREADOR_Y_REDES_V1.md` y `CAMPANAS_Y_CONDICIONES_V1.md`. Los demás recorridos continúan como prototipo; sigue exploración y detalle para el creador.
 
 Referencias de implementación: [Hilt ViewModels](https://dagger.dev/hilt/view-model.html) y [estado en Compose con ciclo de vida](https://developer.android.com/develop/ui/compose/state).

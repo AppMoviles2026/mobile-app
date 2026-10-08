@@ -11,6 +11,7 @@ import retrofit2.Response
 import java.io.IOException
 import java.net.SocketTimeoutException
 import java.time.Clock
+import kotlin.coroutines.coroutineContext
 
 internal data class ApiErrorDto(val code: String?, val message: String?, val fieldErrors: Map<String, String>?)
 class InvalidApiResponse(message: String) : IllegalArgumentException(message)
@@ -26,6 +27,7 @@ class ApiExecutor(
 
     suspend fun <D, T> protectedCall(call: suspend (SessionCredentials) -> Response<D>, map: (D) -> T): ApiResult<T> = withContext(Dispatchers.IO) {
         val credentials = activeCredentials() ?: return@withContext unauthorized()
+        if (!expectedActor(credentials)) return@withContext failure(FailureKind.SESSION_CHANGED, "La cuenta que inició la operación cambió; no se envió la solicitud.")
         execute(credentials, { call(credentials) }) { response ->
             map(response.body() ?: throw InvalidApiResponse("Missing response body"))
         }
@@ -34,6 +36,7 @@ class ApiExecutor(
     suspend fun publicUnit(call: suspend () -> Response<Unit>): ApiResult<Unit> = execute(null, call) { Unit }
     suspend fun protectedUnit(call: suspend (SessionCredentials) -> Response<Unit>): ApiResult<Unit> = withContext(Dispatchers.IO) {
         val credentials = activeCredentials() ?: return@withContext unauthorized()
+        if (!expectedActor(credentials)) return@withContext failure(FailureKind.SESSION_CHANGED, "La cuenta que inició la operación cambió; no se envió la solicitud.")
         execute(credentials, { call(credentials) }) { Unit }
     }
 
@@ -42,6 +45,10 @@ class ApiExecutor(
             sessions.invalidateIfCurrent(it)
             false
         }
+    }
+    private suspend fun expectedActor(credentials: SessionCredentials): Boolean {
+        val expected = coroutineContext[ExpectedAccount] ?: return true
+        return expected.accountId == credentials.accountId && expected.expiresAt == credentials.expiresAt
     }
 
     private fun unauthorized() = ApiResult.Failure(ApiFailure(FailureKind.UNAUTHORIZED, message = "Inicia sesión para continuar."))

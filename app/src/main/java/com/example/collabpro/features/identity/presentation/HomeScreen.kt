@@ -16,9 +16,9 @@ fun HomeScreen(app: AppState, brand: Boolean, onSignOut: () -> Unit = {}) {
                 InfoRow("Tipo", if (brand) "Empresa" else "Creador")
                 Text("El tipo de cuenta y el acceso fueron confirmados por el servidor.")
             } }
-            item { Notice("Registro, login y recuperación ya están conectados. Las funciones siguientes conservan sus vistas previas; sus datos aún no corresponden a tu cuenta.") }
-            item { LinkCard(if (brand) "Mis campañas" else "Explorar campañas", "Vista previa • integración pendiente", { app.go(if (brand) Route.BRAND_CAMPAIGNS else Route.CAMPAIGN_SEARCH) }) }
-            item { LinkCard("Mi perfil", "Vista previa • integración pendiente", { app.go(if (brand) Route.BRAND_PROFILE else Route.CREATOR_PROFILE) }) }
+            item { Notice("Autenticación, perfil del creador y redes están conectados. Las empresas también pueden preparar y publicar campañas; los demás recorridos siguen como vista previa.") }
+            item { LinkCard(if (brand) "Mis campañas" else "Explorar campañas", if (brand) "Crear, retomar y publicar tus campañas reales" else "Vista previa • integración pendiente", { app.go(if (brand) Route.BRAND_CAMPAIGNS else Route.CAMPAIGN_SEARCH) }) }
+            item { LinkCard("Mi perfil", if (brand) "Vista previa • integración pendiente" else "Editar perfil y vincular redes reales", { app.go(if (brand) Route.BRAND_PROFILE else Route.CREATOR_PROFILE) }) }
             if (!brand) item { LinkCard("Mis postulaciones", "Vista previa • integración pendiente", { app.go(Route.MY_APPLICATIONS) }) }
             item { Action("Cerrar sesión", onSignOut, secondary = true) }
         }

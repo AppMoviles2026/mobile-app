@@ -12,6 +12,8 @@ import com.example.collabpro.features.identity.domain.model.*
 import com.example.collabpro.features.identity.presentation.profile.*
 import com.example.collabpro.core.domain.*
 import java.util.UUID
+import com.example.collabpro.features.campaign.presentation.manage.*
+import com.example.collabpro.features.campaign.application.drafts.*
 import com.example.collabpro.features.performance.presentation.*
 import com.example.collabpro.ui.theme.CollabProTheme
 
@@ -119,13 +121,24 @@ import com.example.collabpro.ui.theme.CollabProTheme
 @Composable private fun MyApplicationsPreview() = preview { MyApplicationsScreen(AppState()) }
 
 @Preview(name = "Campañas de empresa", showBackground = true, showSystemUi = true)
-@Composable private fun BrandCampaignsPreview() = preview { BrandCampaignsScreen(AppState()) }
+@Composable private fun BrandCampaignsPreview() = preview { OwnCampaignsScreen(OwnCampaignsUiState(), CampaignEditorUiState(draft = CampaignDraft(), restoring = false)) }
 
 @Preview(name = "Crear campaña", showBackground = true, showSystemUi = true)
-@Composable private fun CampaignFormPreview() = preview { CampaignFormScreen(AppState()) }
+@Composable private fun CampaignFormPreview() = preview { CampaignBasicsScreen(CampaignEditorUiState(draft = CampaignDraft(), restoring = false)) }
 
 @Preview(name = "Términos de campaña", showBackground = true, showSystemUi = true)
-@Composable private fun CampaignTermsPreview() = preview { CampaignTermsScreen(AppState()) }
+@Composable private fun CampaignTermsPreview() = preview { CampaignConditionsScreen(CampaignEditorUiState(draft = CampaignDraft(step = 2), restoring = false)) }
+
+@Preview(name = "Campaña • Éxito parcial", showBackground = true, showSystemUi = true)
+@Composable private fun PartialCampaignPreview() = preview { CampaignConditionsScreen(CampaignEditorUiState(
+    draft = CampaignDraft(serverId = UUID.fromString("00000000-0000-0000-0000-000000000015"), pending = DraftOperation.PUBLISH, step = 2),
+    restoring = false, failure = ApiFailure(FailureKind.TIMEOUT, message = "No se pudo confirmar la publicación."),
+    notice = "El borrador y sus condiciones se conservan. Comprueba el servidor antes de repetir.")) }
+
+@Preview(name = "Mis campañas • Error", showBackground = true, showSystemUi = true)
+@Composable private fun OwnCampaignsErrorPreview() = preview { OwnCampaignsScreen(
+    OwnCampaignsUiState(failure = ApiFailure(FailureKind.NETWORK, message = "No se pudo cargar la lista.")),
+    CampaignEditorUiState(draft = CampaignDraft(), restoring = false)) }
 
 @Preview(name = "Postulantes", showBackground = true, showSystemUi = true)
 @Composable private fun ApplicantsPreview() = preview { ApplicantsScreen(AppState()) }
