@@ -23,7 +23,7 @@ enum class Route {
     WELCOME, ABOUT_BRAND, ABOUT_CREATOR, HOW_BRAND, HOW_CREATOR, CONTACT, ROLE_PICK,
     REGISTER_BRAND, REGISTER_CREATOR, LOGIN, RECOVER,
     BRAND_HOME, CREATOR_HOME, BRAND_PROFILE, CREATOR_PROFILE, SOCIAL_ACCOUNTS,
-    CAMPAIGN_SEARCH, CAMPAIGN_DETAIL, APPLICATION_FORM, MY_APPLICATIONS,
+    CAMPAIGN_SEARCH, CAMPAIGN_DETAIL, APPLICATION_FORM, MY_APPLICATIONS, APPLICATION_DETAIL,
     BRAND_CAMPAIGNS, CAMPAIGN_FORM, CAMPAIGN_TERMS, APPLICANTS, APPLICANT_DETAIL,
     AGREEMENT, COLLABORATIONS, COLLABORATION_DETAIL, EVIDENCE_FORM, REVIEW_DELIVERABLE,
     INCIDENTS, INCIDENT_FORM, PAYMENT_METHODS, PAYMENT_FORM, PLANS, SUBSCRIPTION,
@@ -64,7 +64,7 @@ class AppState(authenticatedAccount: Account? = null) {
         if (authenticatedAccount != null && ((destination in listOf(Route.CREATOR_PROFILE, Route.SOCIAL_ACCOUNTS) && role != UserRole.CREATOR) ||
             (destination == Route.BRAND_PROFILE && role != UserRole.BRAND))) return
         if (authenticatedAccount != null && destination in listOf(Route.BRAND_CAMPAIGNS, Route.CAMPAIGN_FORM, Route.CAMPAIGN_TERMS) && role != UserRole.BRAND) return
-        if (authenticatedAccount != null && destination == Route.CAMPAIGN_SEARCH && role != UserRole.CREATOR) return
+        if (authenticatedAccount != null && destination in listOf(Route.CAMPAIGN_SEARCH, Route.APPLICATION_FORM, Route.MY_APPLICATIONS, Route.APPLICATION_DETAIL) && role != UserRole.CREATOR) return
         if (route == destination) return
         backStack.add(route)
         variant = ""

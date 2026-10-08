@@ -92,6 +92,6 @@ Las tres pruebas Compose instrumentadas de autenticación están preparadas en `
 
 Los servicios de prueba se crean por separado de tus contenedores SmartQuote y se retiran al finalizar. No se borran bases/volúmenes del proyecto ni se modifican servicios del usuario.
 
-Perfil/redes, preparación y exploración de campañas ya están implementados; consulta `PERFIL_CREADOR_Y_REDES_V1.md`, `CAMPANAS_Y_CONDICIONES_V1.md` y `EXPLORACION_Y_DETALLE_V1.md`. Los demás recorridos continúan como prototipo; sigue postulaciones propias.
+Perfil/redes, preparación/exploración de campañas y postulaciones propias ya están implementados; consulta `PERFIL_CREADOR_Y_REDES_V1.md`, `CAMPANAS_Y_CONDICIONES_V1.md`, `EXPLORACION_Y_DETALLE_V1.md` y `POSTULACIONES_PROPIAS_V1.md`. Los demás recorridos continúan como prototipo; sigue limpieza general y aceptación completa (fase 8).
 
 Referencias de implementación: [Hilt ViewModels](https://dagger.dev/hilt/view-model.html) y [estado en Compose con ciclo de vida](https://developer.android.com/develop/ui/compose/state).

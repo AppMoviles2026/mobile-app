@@ -1,6 +1,6 @@
 # Exploración y detalle de campañas V1
 
-Implementación del 8 de octubre de 2026 para US-17 y US-18, dentro de las primeras 18 posiciones del Product Backlog. Pertenece a **Campaign**, sin introducir Matching, recomendaciones, evaluación de postulantes ni historias futuras. La postulación propia (US-19) continúa pendiente de la fase 7.
+Implementación del 8 de octubre de 2026 para US-17 y US-18, dentro de las primeras 18 posiciones del Product Backlog. Pertenece a **Campaign**, sin introducir Matching, recomendaciones, evaluación de postulantes ni historias futuras. Actualización posterior: la postulación propia (US-19) está implementada y documentada en `POSTULACIONES_PROPIAS_V1.md`.
 
 ## Capas DDD y contratos
 
@@ -41,7 +41,7 @@ Los campos editados se distinguen de los criterios aplicados. Si se modifican du
 - Un UUID inexistente muestra 404; 403, 401, timeouts, red y respuestas inválidas tienen estados de error. El 401 utiliza la invalidación global de sesión ya existente.
 - Cambiar de cuenta, cerrar sesión o volver a entrar con otra vigencia elimina filtros, resultados, detalle y navegación anteriores. Las respuestas tardías de lista y detalle no pueden sobreescribir una consulta nueva.
 
-Se retiraron las dos pantallas antiguas de búsqueda/detalle simulados y el salto de una campaña real al formulario ficticio. El detalle no ofrece un envío simulado ni navegación a selección/acuerdos/colaboraciones. Las pantallas de postulaciones todavía son prototipos explícitos y se mantienen independientes hasta la fase 7.
+Se retiraron las dos pantallas antiguas de búsqueda/detalle simulados y el salto de una campaña real al formulario ficticio. El detalle no ofrece un envío simulado ni navegación a selección/acuerdos/colaboraciones. Con la fase 7, permite preparar o consultar la postulación real de esa campaña, incluso consultar una existente si ya no admite envíos nuevos.
 
 ## Verificación
 
@@ -62,4 +62,4 @@ Usar una instancia aislada de MySQL/Mailpit y el backend con la configuración s
 
 La verificación utilizó el backend temporal en 18081 con MySQL 8.4 y Mailpit aislados; no modificó el código del backend ni el reporte. Ese servidor no es la dirección permanente del APK. Los procesos, contenedores y datos sintéticos temporales se retiraron al concluir, conservando SmartQuote y la base de desarrollo. Los escenarios se pueden recrear ejecutando los tests contra otra instancia aislada.
 
-Siguiente fase: **Postulaciones propias**, sin adelantar selección de creadores ni las historias posteriores del backlog.
+La fase siguiente de postulaciones propias ya está implementada. Queda la fase 8 de limpieza general y aceptación completa, sin adelantar selección de creadores ni las historias posteriores del backlog.

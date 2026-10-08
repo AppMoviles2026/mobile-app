@@ -12,6 +12,7 @@ import com.example.collabpro.features.identity.presentation.auth.AuthenticationV
 import com.example.collabpro.features.identity.presentation.profile.CreatorIdentityViewModel
 import com.example.collabpro.features.campaign.presentation.manage.BrandCampaignViewModel
 import com.example.collabpro.features.campaign.presentation.discovery.CampaignDiscoveryViewModel
+import com.example.collabpro.features.campaign.presentation.applications.OwnApplicationsViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
@@ -26,6 +27,7 @@ class MainActivity : ComponentActivity() {
     private val creatorIdentity: CreatorIdentityViewModel by viewModels()
     private val brandCampaigns: BrandCampaignViewModel by viewModels()
     private val campaignDiscovery: CampaignDiscoveryViewModel by viewModels()
+    private val ownApplications: OwnApplicationsViewModel by viewModels()
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         receiveIdentityLink(intent)
@@ -42,7 +44,7 @@ class MainActivity : ComponentActivity() {
         }
         enableEdgeToEdge()
         setContent {
-            CollabProTheme { CollabApp(authentication, creatorIdentity, brandCampaigns, campaignDiscovery) }
+            CollabProTheme { CollabApp(authentication, creatorIdentity, brandCampaigns, campaignDiscovery, ownApplications) }
         }
     }
 
@@ -57,6 +59,7 @@ class MainActivity : ComponentActivity() {
         authentication.checkExpiry()
         creatorIdentity.onResume()
         campaignDiscovery.onResume()
+        ownApplications.onResume()
     }
 
     override fun onStop() {

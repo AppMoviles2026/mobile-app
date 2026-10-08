@@ -14,6 +14,8 @@ import com.example.collabpro.core.domain.*
 import java.util.UUID
 import com.example.collabpro.features.campaign.presentation.manage.*
 import com.example.collabpro.features.campaign.presentation.discovery.*
+import com.example.collabpro.features.campaign.presentation.applications.*
+import com.example.collabpro.features.campaign.application.applications.*
 import com.example.collabpro.features.campaign.domain.model.*
 import com.example.collabpro.features.campaign.application.discovery.DiscoveryFilters
 import java.time.Instant
@@ -143,10 +145,34 @@ private val previewCampaign = CampaignDetails(CampaignSummary(UUID.fromString("0
     listOf(DeliverableSpec(UUID.fromString("00000000-0000-0000-0000-000000000020"), "Video", "Mostrar la experiencia", 1, Instant.parse("2030-02-05T18:00:00Z"))))
 
 @Preview(name = "Postular a campaña", showBackground = true, showSystemUi = true)
-@Composable private fun ApplicationFormPreview() = preview { ApplicationFormScreen(AppState()) }
+@Composable private fun ApplicationFormPreview() = preview { OwnApplicationFormScreen(OwnApplicationFormUiState(
+    campaignId = previewCampaign.summary.id, campaign = previewCampaign, checkedAbsence = true), Instant.parse("2030-01-01T00:00:00Z")) }
 
 @Preview(name = "Mis postulaciones", showBackground = true, showSystemUi = true)
-@Composable private fun MyApplicationsPreview() = preview { MyApplicationsScreen(AppState()) }
+@Composable private fun MyApplicationsPreview() = preview { OwnApplicationsScreen(OwnApplicationsListUiState(page = Page(listOf(previewApplication), 1, 0, 20))) }
+
+@Preview(name = "Detalle de postulación", showBackground = true, showSystemUi = true)
+@Composable private fun ApplicationDetailPreview() = preview { OwnApplicationDetailScreen(OwnApplicationDetailUiState(previewApplication.id, previewApplication)) }
+
+@Preview(name = "Postulación • Conflicto de versión", showBackground = true, showSystemUi = true)
+@Composable private fun ApplicationConflictPreview() = preview { OwnApplicationFormScreen(OwnApplicationFormUiState(
+    campaignId = previewCampaign.summary.id, campaign = previewCampaign, application = previewApplication,
+    proposal = ApplicationProposal("Mi propuesta local sin guardar", previewApplication.confirmedRequirementIds),
+    latest = previewApplication.copy(message = "Propuesta actual del servidor", version = 2),
+    failure = ApiFailure(FailureKind.CONFLICT, "CONCURRENT_UPDATE", "La versión del servidor cambió.")), Instant.parse("2030-01-01T00:00:00Z")) }
+
+@Preview(name = "Postulación • Cancelada", showBackground = true, showSystemUi = true)
+@Composable private fun CancelledApplicationPreview() = preview { OwnApplicationDetailScreen(OwnApplicationDetailUiState(
+    previewApplication.id, previewApplication.copy(status = ApplicationStatus.CANCELLED, version = 1))) }
+
+@Preview(name = "Postulaciones • Error", showBackground = true, showSystemUi = true)
+@Composable private fun ApplicationsErrorPreview() = preview { OwnApplicationsScreen(OwnApplicationsListUiState(
+    failure = ApiFailure(FailureKind.NETWORK, message = "No se pudo consultar tus postulaciones."))) }
+
+private val previewApplication = Application(UUID.fromString("00000000-0000-0000-0000-000000000021"), previewCampaign.summary.id,
+    UUID.fromString("00000000-0000-0000-0000-000000000022"), previewCampaign.summary.title, previewCampaign.summary.brandName,
+    "Propongo un video mostrando mi experiencia en el local.", ApplicationStatus.PENDING, Instant.parse("2030-01-01T00:00:00Z"),
+    previewCampaign.requirements.map { it.id }.toSet(), 0)
 
 @Preview(name = "Campañas de empresa", showBackground = true, showSystemUi = true)
 @Composable private fun BrandCampaignsPreview() = preview { OwnCampaignsScreen(OwnCampaignsUiState(), CampaignEditorUiState(draft = CampaignDraft(), restoring = false)) }

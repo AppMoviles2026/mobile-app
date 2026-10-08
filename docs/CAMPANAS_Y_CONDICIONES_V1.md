@@ -1,6 +1,6 @@
 # Creación y condiciones de campañas — fase 5
 
-Implementación del 8 de octubre de 2026, dentro de **Campaign**, para US-15 y US-16 (posiciones 16 y 17 del backlog ordenado). No se implementan selección de postulantes, acuerdos, entregas, pagos ni métricas. La exploración del creador y sus postulaciones siguen como prototipo hasta las fases 6 y 7.
+Implementación del 8 de octubre de 2026, dentro de **Campaign**, para US-15 y US-16 (posiciones 16 y 17 del backlog ordenado). No se implementan selección de postulantes, acuerdos, entregas, pagos ni métricas. Actualización posterior: la exploración del creador y sus postulaciones están implementadas en las fases 6 y 7, con guías independientes.
 
 ## Recorrido real
 
@@ -73,4 +73,4 @@ $env:COLLABPRO_AUTH_TEST_MAILPIT='http://127.0.0.1:8029'
 
 Sin variables de integración se omiten únicamente los tests opt-in correspondientes. Los procesos/contenedores y datos temporales se retiran al finalizar; SmartQuote y la base de desarrollo permanecen intactos. La instalación, interfaz y Android Keystore todavía deben comprobarse en teléfono/AVD: no hay un dispositivo conectado, y las pruebas instrumentadas se compilan pero no se ejecutan en esta entrega.
 
-La fase 6 de exploración y detalle ya está implementada; consulta `EXPLORACION_Y_DETALLE_V1.md`. Siguiente fase: postulaciones propias, sin implementar historias posteriores del backlog.
+Las fases 6 y 7 de exploración/detalle y postulaciones propias ya están implementadas; consulta `EXPLORACION_Y_DETALLE_V1.md` y `POSTULACIONES_PROPIAS_V1.md`. Siguiente fase: limpieza general y aceptación completa, sin implementar historias posteriores del backlog.

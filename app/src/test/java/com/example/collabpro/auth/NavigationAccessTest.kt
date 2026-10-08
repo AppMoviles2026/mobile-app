@@ -5,6 +5,16 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class NavigationAccessTest {
+    @Test fun `own application routes require an authenticated creator`() {
+        val routes = listOf(Route.APPLICATION_FORM, Route.MY_APPLICATIONS, Route.APPLICATION_DETAIL)
+        val brand = AppState(AuthFixtures.account.copy(accountType = com.example.collabpro.features.identity.domain.model.AccountType.BRAND))
+        val signedOut = AppState()
+        routes.forEach { destination ->
+            brand.go(destination); assertEquals(Route.BRAND_HOME, brand.route)
+            signedOut.go(destination); assertEquals(Route.WELCOME, signedOut.route)
+            val creator = AppState(AuthFixtures.account); creator.go(destination); assertEquals(destination, creator.route)
+        }
+    }
     @Test fun `registration choice is not a private access credential`() {
         val app = AppState()
         app.selectRole(UserRole.CREATOR)

@@ -17,6 +17,7 @@ import com.google.gson.Gson
 import java.time.Clock
 import com.example.collabpro.features.campaign.application.drafts.*
 import com.example.collabpro.features.campaign.infrastructure.drafts.*
+import com.example.collabpro.features.campaign.application.applications.FindOwnApplication
 
 @Module
 @InstallIn(SingletonComponent::class)
@@ -32,4 +33,5 @@ internal object CampaignModule {
     @Provides @Singleton fun applications(api: ApplicationApi, executor: ApiExecutor): ApplicationRepository = RemoteApplicationRepository(api, executor)
     @Provides @Singleton fun campaignUseCases(repository: CampaignRepository) = CampaignUseCases(repository)
     @Provides @Singleton fun applicationUseCases(repository: ApplicationRepository) = ApplicationUseCases(repository)
+    @Provides fun findOwnApplication(repository: ApplicationRepository) = FindOwnApplication(repository)
 }

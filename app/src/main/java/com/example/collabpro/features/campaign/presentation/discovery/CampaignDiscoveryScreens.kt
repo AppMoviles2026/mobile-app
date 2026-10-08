@@ -51,7 +51,8 @@ fun CampaignExploreScreen(state: CampaignDiscoveryUiState, onEdit: (DiscoveryFil
 }
 
 @Composable
-fun CreatorCampaignDetailScreen(state: DiscoveryDetailUiState, now: Instant, onRefresh: () -> Unit = {}, onBack: () -> Unit = {}) {
+fun CreatorCampaignDetailScreen(state: DiscoveryDetailUiState, now: Instant, onRefresh: () -> Unit = {}, onBack: () -> Unit = {},
+    onProposal: (UUID) -> Unit = {}, onApplications: () -> Unit = {}) {
     Page(state.details?.summary?.title ?: "Detalle de campaña", eyebrow = state.details?.summary?.brandName ?: "CAMPAÑA",
         subtitle = "Revisa las condiciones antes de decidir si puedes cumplirlas.", onBack = onBack) {
         if (state.loading) item { LinearProgressIndicator(Modifier.fillMaxWidth()); Text("Verificando condiciones y disponibilidad…") }
@@ -77,8 +78,10 @@ fun CreatorCampaignDetailScreen(state: DiscoveryDetailUiState, now: Instant, onR
                 Text(deliverable.description); InfoRow("Cantidad", deliverable.quantity.toString()); InfoRow("Fecha de entrega", deliverable.deadline.dateText())
             } }
             if (details.deliverables.isEmpty()) item { Text("No se informaron entregables.") }
-            if (summary.availability(now) == CampaignAvailability.AVAILABLE) item { Notice("La campaña está disponible. El envío de postulaciones se conectará en la siguiente etapa; aquí no se simula un envío.") }
+            item { Action(if (summary.availability(now) == CampaignAvailability.AVAILABLE) "Preparar o consultar mi postulación" else "Consultar mi postulación existente",
+                { onProposal(summary.id) }, enabled = !state.loading) }
         }
+        item { Action("Mis postulaciones", onApplications, secondary = true) }
         item { Action("Actualizar detalle", onRefresh, secondary = true, enabled = !state.loading && state.id != null) }
     }
 }

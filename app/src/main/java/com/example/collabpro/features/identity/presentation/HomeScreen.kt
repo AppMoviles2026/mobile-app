@@ -16,11 +16,11 @@ fun HomeScreen(app: AppState, brand: Boolean, onSignOut: () -> Unit = {}, opport
                 InfoRow("Tipo", if (brand) "Empresa" else "Creador")
                 Text("El tipo de cuenta y el acceso fueron confirmados por el servidor.")
             } }
-            item { Notice("Autenticación, perfil del creador, redes, preparación y exploración de campañas están conectados. Postulaciones y los demás recorridos siguen como vista previa.") }
+            item { Notice("Autenticación, perfil del creador, redes, campañas y postulaciones propias están conectados. Los demás recorridos siguen como vista previa.") }
             if (!brand && opportunities != null) item { opportunities() }
             item { LinkCard(if (brand) "Mis campañas" else "Explorar campañas", if (brand) "Crear, retomar y publicar tus campañas reales" else "Buscar oportunidades reales y consultar condiciones", { app.go(if (brand) Route.BRAND_CAMPAIGNS else Route.CAMPAIGN_SEARCH) }) }
             item { LinkCard("Mi perfil", if (brand) "Vista previa • integración pendiente" else "Editar perfil y vincular redes reales", { app.go(if (brand) Route.BRAND_PROFILE else Route.CREATOR_PROFILE) }) }
-            if (!brand) item { LinkCard("Mis postulaciones", "Vista previa • integración pendiente", { app.go(Route.MY_APPLICATIONS) }) }
+            if (!brand) item { LinkCard("Mis postulaciones", "Consultar propuestas reales y gestionar las pendientes", { app.go(Route.MY_APPLICATIONS) }) }
             item { Action("Cerrar sesión", onSignOut, secondary = true) }
         }
         return

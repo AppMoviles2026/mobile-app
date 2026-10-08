@@ -3,6 +3,7 @@ package com.example.collabpro.features.campaign.infrastructure.remote
 import com.example.collabpro.core.domain.Page
 import com.example.collabpro.core.infrastructure.network.*
 import com.example.collabpro.features.campaign.domain.model.*
+import java.time.temporal.ChronoUnit
 
 internal fun CompensationDto.toDomain() = Compensation(type.enum("type"), amount, currency, description.required("description"))
 internal fun Compensation.toDto() = CompensationDto(type.name, amount, currency, description)
@@ -20,7 +21,9 @@ internal fun ApplicationDto.toDomain(): Application {
     if (version < 0) throw InvalidApiResponse("Invalid application version")
     return Application(id.uuid("id"), campaignId.uuid("campaignId"), creatorId.uuid("creatorId"),
         campaignTitle.required("campaignTitle"), brandName.required("brandName"), message.required("message"),
-        status.enum("status"), submittedAt.required("submittedAt"),
+        // V1 MySQL DATETIME(6): POST/cache may carry nanos that subsequent GET cannot retain.
+        // Canonicalize at the adapter boundary so identical persisted snapshots compare equally.
+        status.enum("status"), submittedAt.required("submittedAt").plusNanos(500).truncatedTo(ChronoUnit.MICROS),
         confirmedRequirementIds.required("confirmedRequirementIds").map { it.uuid("confirmedRequirementId") }.toSet(), version)
 }
 internal fun <D, T> PageDto<D>.toDomain(map: (D) -> T): Page<T> {
