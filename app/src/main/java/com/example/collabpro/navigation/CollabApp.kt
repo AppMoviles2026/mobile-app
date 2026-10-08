@@ -26,22 +26,24 @@ import com.example.collabpro.features.identity.presentation.auth.*
 import com.example.collabpro.features.identity.application.auth.SessionState
 import com.example.collabpro.features.identity.presentation.profile.*
 import com.example.collabpro.features.campaign.presentation.manage.*
+import com.example.collabpro.features.campaign.presentation.discovery.*
 import com.example.collabpro.features.campaign.application.drafts.PreparationGoal
 import com.example.collabpro.features.performance.presentation.*
 
 @Composable
-fun CollabApp(authentication: AuthenticationViewModel, creatorIdentity: CreatorIdentityViewModel, brandCampaigns: BrandCampaignViewModel) {
+fun CollabApp(authentication: AuthenticationViewModel, creatorIdentity: CreatorIdentityViewModel, brandCampaigns: BrandCampaignViewModel, campaignDiscovery: CampaignDiscoveryViewModel) {
     Surface(Modifier.fillMaxSize()) {
-        Box(Modifier.fillMaxSize().safeDrawingPadding()) { AuthenticationContent(authentication, creatorIdentity, brandCampaigns) }
+        Box(Modifier.fillMaxSize().safeDrawingPadding()) { AuthenticationContent(authentication, creatorIdentity, brandCampaigns, campaignDiscovery) }
     }
 }
 
 @Composable
-private fun AuthenticationContent(authentication: AuthenticationViewModel, creatorIdentity: CreatorIdentityViewModel, brandCampaigns: BrandCampaignViewModel) {
+private fun AuthenticationContent(authentication: AuthenticationViewModel, creatorIdentity: CreatorIdentityViewModel, brandCampaigns: BrandCampaignViewModel, campaignDiscovery: CampaignDiscoveryViewModel) {
     val session by authentication.session.collectAsStateWithLifecycle()
     val ui by authentication.ui.collectAsStateWithLifecycle()
     val identityUi by creatorIdentity.ui.collectAsStateWithLifecycle()
     val campaignUi by brandCampaigns.ui.collectAsStateWithLifecycle()
+    val discoveryUi by campaignDiscovery.ui.collectAsStateWithLifecycle()
     val publicApp = rememberSaveable(saver = Saver<AppState, List<String>>(save = { it.snapshot() }, restore = { AppState().apply { restore(it) } })) { AppState() }
     LaunchedEffect(authentication) { authentication.events.collect { publicApp.resetToLogin() } }
     LaunchedEffect(session) {
@@ -67,7 +69,8 @@ private fun AuthenticationContent(authentication: AuthenticationViewModel, creat
             val app = remember { AppState(current.account) }
             LaunchedEffect(current.account) { app.updateAccount(current.account) }
             PrivateRoutes(app, authentication::signOut, creatorIdentity, identityUi, brandCampaigns,
-                campaignUi.takeIf { it.ownerId == current.account.accountId } ?: BrandCampaignUiState())
+                campaignUi.takeIf { it.ownerId == current.account.accountId } ?: BrandCampaignUiState(), campaignDiscovery,
+                discoveryUi.takeIf { it.ownerId == current.account.accountId && it.expiresAt == current.expiresAt } ?: CampaignDiscoveryUiState())
         }
     }
 }
@@ -108,7 +111,20 @@ private fun PublicRoutes(app: AppState, ui: AuthenticationUiState, notice: Strin
 
 @Composable
 private fun PrivateRoutes(app: AppState, onSignOut: () -> Unit, creatorIdentity: CreatorIdentityViewModel, identityUi: CreatorIdentityUiState,
-    brandCampaigns: BrandCampaignViewModel, campaignUi: BrandCampaignUiState) {
+    brandCampaigns: BrandCampaignViewModel, campaignUi: BrandCampaignUiState,
+    campaignDiscovery: CampaignDiscoveryViewModel, discoveryUi: CampaignDiscoveryUiState) {
+    DisposableEffect(campaignDiscovery) { onDispose { campaignDiscovery.onShown(null) } }
+    LaunchedEffect(app.route, discoveryUi.ownerId, discoveryUi.expiresAt) {
+        campaignDiscovery.onShown(if (app.role != UserRole.CREATOR) null else when (app.route) {
+            Route.CREATOR_HOME -> DiscoveryView.HOME
+            Route.CAMPAIGN_SEARCH -> DiscoveryView.SEARCH
+            Route.CAMPAIGN_DETAIL -> DiscoveryView.DETAIL
+            else -> null
+        })
+    }
+    LaunchedEffect(discoveryUi.navigateToDetail) {
+        if (app.role == UserRole.CREATOR && discoveryUi.navigateToDetail) { app.go(Route.CAMPAIGN_DETAIL); campaignDiscovery.consumeNavigation() }
+    }
     LaunchedEffect(campaignUi.navigate) {
         if (app.role == UserRole.BRAND) campaignUi.navigate?.let { destination ->
             when (destination) {
@@ -148,7 +164,8 @@ private fun PrivateRoutes(app: AppState, onSignOut: () -> Unit, creatorIdentity:
                 TextButton(onClick = onSignOut) { Text("Cerrar sesión") }
             }
             identityUi.externalNotice?.let { Text(it, Modifier.padding(horizontal = 16.dp), style = MaterialTheme.typography.labelSmall) }
-            val connectedCampaign = app.role == UserRole.BRAND && app.route in listOf(Route.BRAND_CAMPAIGNS, Route.CAMPAIGN_FORM, Route.CAMPAIGN_TERMS, Route.CAMPAIGN_DETAIL)
+            val connectedCampaign = (app.role == UserRole.BRAND && app.route in listOf(Route.BRAND_CAMPAIGNS, Route.CAMPAIGN_FORM, Route.CAMPAIGN_TERMS, Route.CAMPAIGN_DETAIL)) ||
+                (app.role == UserRole.CREATOR && app.route in listOf(Route.CAMPAIGN_SEARCH, Route.CAMPAIGN_DETAIL))
             if (app.route != home && !connectedCampaign && app.route !in listOf(Route.CREATOR_PROFILE, Route.SOCIAL_ACCOUNTS)) Text("Vista previa • esta función aún no está conectada", Modifier.padding(horizontal = 16.dp, vertical = 4.dp), style = MaterialTheme.typography.labelSmall)
         }
     }, bottomBar = {
@@ -161,7 +178,10 @@ private fun PrivateRoutes(app: AppState, onSignOut: () -> Unit, creatorIdentity:
         androidx.compose.foundation.layout.Box(Modifier.padding(padding)) {
             when (app.route) {
                 Route.BRAND_HOME -> HomeScreen(app, true, onSignOut)
-                Route.CREATOR_HOME -> HomeScreen(app, false, onSignOut)
+                Route.CREATOR_HOME -> HomeScreen(app, false, onSignOut) {
+                    CreatorOpportunitiesPanel(discoveryUi.opportunities, discoveryUi.now, campaignDiscovery::openDetails,
+                        onRetry = { campaignDiscovery.loadOpportunities(force = true) }, onExplore = { app.go(Route.CAMPAIGN_SEARCH) })
+                }
                 Route.BRAND_PROFILE -> BrandProfileScreen(app)
                 Route.CREATOR_PROFILE -> CreatorProfileScreen(identityUi.profile, creatorIdentity::editProfile,
                     creatorIdentity::saveProfile, onReload = { creatorIdentity.loadProfile(force = true) },
@@ -170,11 +190,14 @@ private fun PrivateRoutes(app: AppState, onSignOut: () -> Unit, creatorIdentity:
                 Route.SOCIAL_ACCOUNTS -> LinkedSocialAccountsScreen(identityUi.social, creatorIdentity::startAuthorization,
                     creatorIdentity::loadSocialAccounts, creatorIdentity::checkAuthorization, creatorIdentity::reopenBrowser,
                     creatorIdentity::forgetAttempt, app::back)
-                Route.CAMPAIGN_SEARCH -> CampaignSearchScreen(app)
+                Route.CAMPAIGN_SEARCH -> CampaignExploreScreen(discoveryUi, campaignDiscovery::editFilters, campaignDiscovery::applyFilters,
+                    campaignDiscovery::clearFilters, campaignDiscovery::retrySearch, campaignDiscovery::refreshSearch,
+                    campaignDiscovery::nextPage, campaignDiscovery::previousPage, campaignDiscovery::openDetails, app::back)
                 Route.CAMPAIGN_DETAIL -> if (app.role == UserRole.BRAND) OwnedCampaignDetailScreen(campaignUi.detail,
                     onRetry = { campaignUi.detail.id?.let(brandCampaigns::openDetails) }, onEdit = brandCampaigns::editSelected,
                     onDiscard = { brandCampaigns.discardOrClose(true) }, onClose = { brandCampaigns.discardOrClose(false) }, onBack = app::back)
-                    else CampaignDetailScreen(app)
+                    else CreatorCampaignDetailScreen(discoveryUi.detail, discoveryUi.now,
+                        onRefresh = { campaignDiscovery.refreshDetail(force = true) }, onBack = app::back)
                 Route.APPLICATION_FORM -> ApplicationFormScreen(app)
                 Route.MY_APPLICATIONS -> MyApplicationsScreen(app)
                 Route.BRAND_CAMPAIGNS -> OwnCampaignsScreen(campaignUi.campaigns, campaignUi.editor, brandCampaigns::openEditor,

@@ -7,7 +7,7 @@ import com.example.collabpro.navigation.AppState
 import com.example.collabpro.navigation.Route
 
 @Composable
-fun HomeScreen(app: AppState, brand: Boolean, onSignOut: () -> Unit = {}) {
+fun HomeScreen(app: AppState, brand: Boolean, onSignOut: () -> Unit = {}, opportunities: (@Composable () -> Unit)? = null) {
     val account = app.authenticatedAccount
     if (account != null) {
         Page("Hola, ${account.name}", eyebrow = if (brand) "ESPACIO EMPRESA" else "ESPACIO CREADOR", subtitle = "Tu sesión está activa y verificada.") {
@@ -16,8 +16,9 @@ fun HomeScreen(app: AppState, brand: Boolean, onSignOut: () -> Unit = {}) {
                 InfoRow("Tipo", if (brand) "Empresa" else "Creador")
                 Text("El tipo de cuenta y el acceso fueron confirmados por el servidor.")
             } }
-            item { Notice("Autenticación, perfil del creador y redes están conectados. Las empresas también pueden preparar y publicar campañas; los demás recorridos siguen como vista previa.") }
-            item { LinkCard(if (brand) "Mis campañas" else "Explorar campañas", if (brand) "Crear, retomar y publicar tus campañas reales" else "Vista previa • integración pendiente", { app.go(if (brand) Route.BRAND_CAMPAIGNS else Route.CAMPAIGN_SEARCH) }) }
+            item { Notice("Autenticación, perfil del creador, redes, preparación y exploración de campañas están conectados. Postulaciones y los demás recorridos siguen como vista previa.") }
+            if (!brand && opportunities != null) item { opportunities() }
+            item { LinkCard(if (brand) "Mis campañas" else "Explorar campañas", if (brand) "Crear, retomar y publicar tus campañas reales" else "Buscar oportunidades reales y consultar condiciones", { app.go(if (brand) Route.BRAND_CAMPAIGNS else Route.CAMPAIGN_SEARCH) }) }
             item { LinkCard("Mi perfil", if (brand) "Vista previa • integración pendiente" else "Editar perfil y vincular redes reales", { app.go(if (brand) Route.BRAND_PROFILE else Route.CREATOR_PROFILE) }) }
             if (!brand) item { LinkCard("Mis postulaciones", "Vista previa • integración pendiente", { app.go(Route.MY_APPLICATIONS) }) }
             item { Action("Cerrar sesión", onSignOut, secondary = true) }

@@ -1,8 +1,8 @@
 # CollabPro Android — DDD e integración real
 
-Aplicación Android en Kotlin y Jetpack Compose basada en el reporte. **Registro, login, recuperación, perfil del creador, redes y creación/condiciones/publicación de campañas ya consumen el backend real.** El rol viene del servidor y la sesión JWT se guarda cifrada. Instagram/TikTok requieren configurar sus proveedores en el backend. Mis campañas y su detalle empresarial usan UUID reales; la preparación se conserva cifrada y los éxitos parciales se pueden retomar. Perfil empresarial, exploración/postulaciones del creador y demás pantallas siguen como prototipo identificado.
+Aplicación Android en Kotlin y Jetpack Compose basada en el reporte. **Registro, login, recuperación, perfil del creador, redes, creación/condiciones/publicación y exploración/detalle de campañas ya consumen el backend real.** El rol viene del servidor y la sesión JWT se guarda cifrada. Instagram/TikTok requieren configurar sus proveedores en el backend. Mis campañas y ambos detalles usan UUID reales; la preparación se conserva cifrada y los éxitos parciales se pueden retomar. El creador consulta oportunidades, filtros combinados, paginación y disponibilidad reales. Perfil empresarial, postulaciones y demás pantallas siguen como prototipo identificado.
 
-Las fases 2–5 están implementadas. Consulta [Campañas, borradores y éxitos parciales](docs/CAMPANAS_Y_CONDICIONES_V1.md), [Perfil y OAuth](docs/PERFIL_CREADOR_Y_REDES_V1.md), [Autenticación real](docs/AUTENTICACION_MOVIL_V1.md), [Base móvil DDD](docs/BASE_MOVIL_DDD_V1.md) y el [plan final](docs/PLAN_IMPLEMENTACION_FINAL_V1.md). El siguiente paso es exploración y detalle para creadores, dentro de las primeras 18 posiciones del backlog.
+Las fases 2–6 están implementadas. Consulta [Exploración y detalle](docs/EXPLORACION_Y_DETALLE_V1.md), [Campañas, borradores y éxitos parciales](docs/CAMPANAS_Y_CONDICIONES_V1.md), [Perfil y OAuth](docs/PERFIL_CREADOR_Y_REDES_V1.md), [Autenticación real](docs/AUTENTICACION_MOVIL_V1.md), [Base móvil DDD](docs/BASE_MOVIL_DDD_V1.md) y el [plan final](docs/PLAN_IMPLEMENTACION_FINAL_V1.md). El siguiente paso es postulaciones propias, dentro de las primeras 18 posiciones del backlog.
 
 ## Recorridos y cobertura
 
@@ -27,7 +27,7 @@ Los paquetes `features/identity`, `features/campaign`, `features/collaboration`,
 - `domain`: modelos y contratos del contexto; los reales están en `model` y `repositories`.
 - `application`: casos de uso reales en `usecases`, separados de consultas del prototipo.
 - `infrastructure`: adapters REST, DTOs, mapeadores, DI y persistencia segura; repositorios Preview conservados exclusivamente para la maqueta.
-- `presentation`: ViewModel/UiState/Screens reales en `identity/presentation/auth`, `identity/presentation/profile` y `campaign/presentation/manage`; los otros recorridos permanecen de demostración.
+- `presentation`: ViewModel/UiState/Screens reales en `identity/presentation/auth`, `identity/presentation/profile`, `campaign/presentation/manage` y `campaign/presentation/discovery`; los otros recorridos permanecen de demostración.
 
 `navigation/CollabApp.kt` separa rutas públicas, verificación de sesión, nueva contraseña y recorrido privado. El `AppState` privado se crea con la cuenta verificada; no restaura un rol o ruta privados desde preferencias de navegación. `core/designsystem` concentra componentes visuales reutilizables.
 

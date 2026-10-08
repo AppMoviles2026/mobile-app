@@ -196,7 +196,7 @@ Modelar Account/Session/CreatorProfile/SocialAccount/AuthorizationAttempt y Camp
 
 ### Fase 3. Registro, sesión y recuperación
 
-**Implementada el 8 de octubre de 2026.** `AUTENTICACION_MOVIL_V1.md` documenta las seis operaciones conectadas, el coordinador Application, ViewModel/Screens, sesión verificada, aislamiento de navegación, expiración y deep link de nueva contraseña. Se eliminaron login por cualquier password, selector de rol y errores simulados. Las pruebas incluyen MySQL y entrega SMTP a Mailpit, reset de un solo uso y revocación del JWT anterior. La comprobación visual/interacción en teléfono o AVD continúa pendiente por ausencia de dispositivo conectado. Las fases 4 y 5 también están implementadas; las fases 6–8 siguen pendientes.
+**Implementada el 8 de octubre de 2026.** `AUTENTICACION_MOVIL_V1.md` documenta las seis operaciones conectadas, el coordinador Application, ViewModel/Screens, sesión verificada, aislamiento de navegación, expiración y deep link de nueva contraseña. Se eliminaron login por cualquier password, selector de rol y errores simulados. Las pruebas incluyen MySQL y entrega SMTP a Mailpit, reset de un solo uso y revocación del JWT anterior. La comprobación visual/interacción en teléfono o AVD continúa pendiente por ausencia de dispositivo conectado. Las fases 4, 5 y 6 también están implementadas; las fases 7–8 siguen pendientes.
 
 Conectar E01–E06: registro de ambos tipos → Login; rol del servidor; restauración verificada; expiración; logout local; deep link de nueva contraseña y 204. Quitar acceso por cualquier password y mensajes simulados. Contraseña mínima 8, máxima 128, input protegido.
 
@@ -227,6 +227,8 @@ Conectar Mis campañas a E15. En borrador ofrecer E24; en OPEN ofrecer E25. Espe
 **Validación:** creación completa visible al creador (US-15), publicación incompleta bloqueada, condiciones incompatibles, éxito parcial, timeout, descarte y cierre con postulaciones conservadas.
 
 ### Fase 6. Exploración y detalle
+
+**Implementada el 8 de octubre de 2026.** Guía `EXPLORACION_Y_DETALLE_V1.md`: oportunidades reales en Inicio, filtros combinados, paginación por total del servidor y detalle completo por UUID. Consultas aisladas por cuenta/vigencia, cancelación y revisiones contra respuestas tardías. `acceptsApplications` no se sustituye por datos de ejemplo; cierre y vencimiento mantienen el detalle con aviso. Actualización al volver a primer plano y vencimiento local sin sondeo de red. El formulario simulado de postulación no se abre desde una campaña real; envío y gestión propios quedan para la fase 7.
 
 E16 alimenta oportunidades del panel creador; E17 búsqueda paginada con texto/categoría/ubicación/compensación; E18 detalle por UUID. Cancelar consultas antiguas al cambiar filtros, resetear página, mostrar vacío distinto de error. No usar `first()` como reemplazo de un UUID inexistente.
 

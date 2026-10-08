@@ -10,34 +10,7 @@ import com.example.collabpro.core.designsystem.*
 import com.example.collabpro.navigation.AppState
 import com.example.collabpro.navigation.Route
 
-// Creator exploration and applications remain isolated prototypes until their integration phases.
-@Composable
-fun CampaignSearchScreen(app: AppState) {
-    var query by remember { mutableStateOf("") }; var filter by remember { mutableStateOf("Todas") }
-    val matches = app.campaigns.filter { (filter == "Todas" || it.category == filter) && (query.isBlank() || it.title.contains(query, true) || it.brand.contains(query, true)) }
-    Page("Explorar campañas", subtitle = "Oportunidades alineadas con tu contenido.", onBack = app::back) {
-        item { Entry("Buscar marca o campaña", query, { query = it }) }
-        item { ChoiceRow(listOf("Todas", "Gastronomía", "Belleza", "Moda"), filter) { filter = it } }
-        if (matches.isEmpty()) item { Panel("Sin coincidencias") { Text("Prueba otra palabra o categoría."); Action("Limpiar filtros", { query = ""; filter = "Todas" }, secondary = true) } }
-        matches.forEach { campaign -> item { LinkCard(campaign.title, "${campaign.brand} • ${campaign.location}\n${campaign.compensation}", { app.selectCampaign(campaign.id); app.go(Route.CAMPAIGN_DETAIL) }, campaign.status) } }
-    }
-}
-
-@Composable
-fun CampaignDetailScreen(app: AppState) {
-    val campaign = app.campaigns.firstOrNull { it.id == app.campaignId } ?: app.campaigns.first()
-    Page(campaign.title, eyebrow = campaign.brand.uppercase(), subtitle = campaign.summary, onBack = app::back) {
-        item { Status(campaign.status) }
-        item { Panel("Información") { InfoRow("Categoría", campaign.category); InfoRow("Ubicación", campaign.location); InfoRow("Fecha límite", campaign.deadline); InfoRow("Compensación", campaign.compensation) } }
-        item { Panel("Condiciones") { Text("Objetivo: llegar a una audiencia joven interesada en experiencias locales."); Text("Requisito: perfil auténtico y afinidad con la categoría."); Text("Entregables: un video corto y dos historias con enlace de publicación."); Text("Aceptación: contenido publicado y evidencia verificable.") } }
-        if (campaign.status == "Cerrada") item { Notice("Esta campaña ya no admite nuevas postulaciones.") }
-        else if (app.role == com.example.collabpro.navigation.UserRole.CREATOR) item { Action("Postular a esta campaña") { app.go(Route.APPLICATION_FORM) } }
-        else {
-            item { Action("Revisar postulaciones") { app.go(Route.APPLICANTS) } }
-            item { Action("Ver estado de colaboración", { app.go(Route.COLLABORATION_DETAIL) }, secondary = true) }
-        }
-    }
-}
+// Applications and applicant selection remain isolated prototypes until their integration phases.
 
 @Composable
 fun ApplicationFormScreen(app: AppState) {

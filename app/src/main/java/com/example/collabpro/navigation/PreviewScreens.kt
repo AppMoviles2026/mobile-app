@@ -13,6 +13,10 @@ import com.example.collabpro.features.identity.presentation.profile.*
 import com.example.collabpro.core.domain.*
 import java.util.UUID
 import com.example.collabpro.features.campaign.presentation.manage.*
+import com.example.collabpro.features.campaign.presentation.discovery.*
+import com.example.collabpro.features.campaign.domain.model.*
+import com.example.collabpro.features.campaign.application.discovery.DiscoveryFilters
+import java.time.Instant
 import com.example.collabpro.features.campaign.application.drafts.*
 import com.example.collabpro.features.performance.presentation.*
 import com.example.collabpro.ui.theme.CollabProTheme
@@ -109,10 +113,34 @@ import com.example.collabpro.ui.theme.CollabProTheme
 }
 
 @Preview(name = "Buscar campañas", showBackground = true, showSystemUi = true)
-@Composable private fun CampaignSearchPreview() = preview { CampaignSearchScreen(AppState()) }
+@Composable private fun CampaignSearchPreview() = preview { CampaignExploreScreen(CampaignDiscoveryUiState(
+    results = DiscoveryPageUiState(page = Page(listOf(previewCampaign.summary), 1, 0, 20)), now = Instant.parse("2030-01-01T00:00:00Z"))) }
 
 @Preview(name = "Detalle de campaña", showBackground = true, showSystemUi = true)
-@Composable private fun CampaignDetailPreview() = preview { CampaignDetailScreen(AppState()) }
+@Composable private fun CampaignDetailPreview() = preview { CreatorCampaignDetailScreen(DiscoveryDetailUiState(
+    previewCampaign.summary.id, previewCampaign), Instant.parse("2030-01-01T00:00:00Z")) }
+
+@Preview(name = "Explorar • Sin coincidencias", showBackground = true, showSystemUi = true)
+@Composable private fun CampaignEmptyPreview() = preview { CampaignExploreScreen(CampaignDiscoveryUiState(
+    filters = DiscoveryFilters(category = "Moda"), appliedFilters = DiscoveryFilters(category = "Moda"),
+    results = DiscoveryPageUiState(page = Page(emptyList(), 0, 0, 20)))) }
+
+@Preview(name = "Explorar • Error de conexión", showBackground = true, showSystemUi = true)
+@Composable private fun CampaignSearchErrorPreview() = preview { CampaignExploreScreen(CampaignDiscoveryUiState(
+    results = DiscoveryPageUiState(failure = ApiFailure(FailureKind.NETWORK, message = "No se pudo conectar con el servidor.")))) }
+
+@Preview(name = "Detalle • No admite postulaciones", showBackground = true, showSystemUi = true)
+@Composable private fun ClosedCampaignPreview() = preview { CreatorCampaignDetailScreen(DiscoveryDetailUiState(
+    previewCampaign.summary.id, previewCampaign.copy(summary = previewCampaign.summary.copy(status = CampaignStatus.CLOSED, acceptsApplications = false))),
+    Instant.parse("2030-01-01T00:00:00Z")) }
+
+private val previewCampaign = CampaignDetails(CampaignSummary(UUID.fromString("00000000-0000-0000-0000-000000000017"),
+    UUID.fromString("00000000-0000-0000-0000-000000000018"), "Empresa de ejemplo", "Experiencias locales", "Gastronomía", "Lima",
+    Compensation(CompensationType.PRODUCT, null, null, "Degustación por contenido"), Instant.parse("2030-02-01T18:00:00Z"), CampaignStatus.OPEN, true),
+    "Presentar una experiencia gastronómica", "Contenido auténtico de una visita al local.", "Jóvenes interesados en gastronomía",
+    Instant.parse("2029-12-30T10:00:00Z"), listOf(Requirement(UUID.fromString("00000000-0000-0000-0000-000000000019"),
+        "Revisar las condiciones", true, RequirementRule.MANUAL_CONFIRMATION, null)),
+    listOf(DeliverableSpec(UUID.fromString("00000000-0000-0000-0000-000000000020"), "Video", "Mostrar la experiencia", 1, Instant.parse("2030-02-05T18:00:00Z"))))
 
 @Preview(name = "Postular a campaña", showBackground = true, showSystemUi = true)
 @Composable private fun ApplicationFormPreview() = preview { ApplicationFormScreen(AppState()) }

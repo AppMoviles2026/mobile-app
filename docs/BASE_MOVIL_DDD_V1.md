@@ -97,6 +97,6 @@ Resultado de esta entrega: **42 tests aprobados** (41 de la base y 1 previo), `a
 
 El cifrado se prueba con una clave AES JVM y un storage en memoria; Android Keystore, instalación, ejecución y renderizado de Preview deben validarse en dispositivo/Android Studio. No hay dispositivo/emulador conectado para esas comprobaciones durante esta entrega. Los servicios del backend y los proveedores OAuth reales no se ejecutan en estas pruebas móviles.
 
-Las **fases 3, 4 y 5 ya están implementadas**, con guías `AUTENTICACION_MOVIL_V1.md`, `PERFIL_CREADOR_Y_REDES_V1.md` y `CAMPANAS_Y_CONDICIONES_V1.md`. Sigue exploración (6), postulaciones (7) y limpieza/aceptación integral (8). Las referencias a integración futura de esos flujos en la descripción original de esta base son ahora históricas.
+Las **fases 3, 4, 5 y 6 ya están implementadas**, con guías `AUTENTICACION_MOVIL_V1.md`, `PERFIL_CREADOR_Y_REDES_V1.md`, `CAMPANAS_Y_CONDICIONES_V1.md` y `EXPLORACION_Y_DETALLE_V1.md`. Sigue postulaciones (7) y limpieza/aceptación integral (8). Las referencias a integración futura de esos flujos en la descripción original de esta base son ahora históricas.
 
 Referencias de configuración: [Hilt Gradle](https://dagger.dev/hilt/gradle-setup), [Kotlin integrado en AGP](https://developer.android.com/build/migrate-to-built-in-kotlin). Se utiliza Kotlin integrado en AGP 9: no se añade el plugin Kotlin Android antiguo.
