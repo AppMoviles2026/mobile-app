@@ -8,6 +8,10 @@ import com.example.collabpro.features.collaboration.presentation.*
 import com.example.collabpro.features.identity.presentation.*
 import com.example.collabpro.features.identity.presentation.auth.*
 import com.example.collabpro.features.identity.domain.model.AccountType
+import com.example.collabpro.features.identity.domain.model.*
+import com.example.collabpro.features.identity.presentation.profile.*
+import com.example.collabpro.core.domain.*
+import java.util.UUID
 import com.example.collabpro.features.performance.presentation.*
 import com.example.collabpro.ui.theme.CollabProTheme
 
@@ -66,13 +70,41 @@ import com.example.collabpro.ui.theme.CollabProTheme
 }
 
 @Preview(name = "Perfil • Empresa", showBackground = true, showSystemUi = true)
-@Composable private fun BrandProfilePreview() = preview { ProfileScreen(AppState(), true) }
+@Composable private fun BrandProfilePreview() = preview { BrandProfileScreen(AppState()) }
 
 @Preview(name = "Perfil • Creador", showBackground = true, showSystemUi = true)
-@Composable private fun CreatorProfilePreview() = preview { ProfileScreen(AppState(), false) }
+@Composable private fun CreatorProfilePreview() = preview {
+    val profile = CreatorProfile(UUID.fromString("00000000-0000-0000-0000-000000000013"), "Camila Rojas",
+        "Contenido gastronómico y experiencias locales.", "Gastronomía", "Jóvenes de 18 a 30 años", "Lima")
+    CreatorProfileScreen(CreatorProfileUiState(profile, ProfileDraft.from(profile)))
+}
 
 @Preview(name = "Cuentas sociales", showBackground = true, showSystemUi = true)
-@Composable private fun SocialAccountsPreview() = preview { SocialAccountsScreen(AppState()) }
+@Composable private fun SocialAccountsPreview() = preview { LinkedSocialAccountsScreen(SocialAccountsUiState(loaded = true)) }
+
+@Preview(name = "Perfil • Error de carga", showBackground = true, showSystemUi = true)
+@Composable private fun CreatorProfileErrorPreview() = preview {
+    CreatorProfileScreen(CreatorProfileUiState(failure = ApiFailure(FailureKind.NETWORK, message = "No se pudo conectar con el servidor.")))
+}
+
+@Preview(name = "Redes • Autorizadas", showBackground = true, showSystemUi = true)
+@Composable private fun LinkedAccountsPreview() = preview {
+    LinkedSocialAccountsScreen(SocialAccountsUiState(loaded = true, accounts = listOf(
+        SocialAccount(UUID.fromString("00000000-0000-0000-0000-000000000014"), SocialPlatform.INSTAGRAM, "camila.crea", SocialAccountStatus.ACTIVE))))
+}
+
+@Preview(name = "Redes • Permiso rechazado", showBackground = true, showSystemUi = true)
+@Composable private fun SocialDeniedPreview() = preview {
+    LinkedSocialAccountsScreen(SocialAccountsUiState(loaded = true, link = SocialLinkUiState(
+        UUID.fromString("00000000-0000-0000-0000-000000000015"), SocialPlatform.TIKTOK, AuthorizationStatus.FAILED,
+        message = "No concediste los permisos necesarios. No se vinculó una cuenta nueva.")))
+}
+
+@Preview(name = "Redes • Verificando retorno", showBackground = true, showSystemUi = true)
+@Composable private fun SocialCheckingPreview() = preview {
+    LinkedSocialAccountsScreen(SocialAccountsUiState(link = SocialLinkUiState(
+        UUID.fromString("00000000-0000-0000-0000-000000000016"), SocialPlatform.INSTAGRAM, checking = true)))
+}
 
 @Preview(name = "Buscar campañas", showBackground = true, showSystemUi = true)
 @Composable private fun CampaignSearchPreview() = preview { CampaignSearchScreen(AppState()) }

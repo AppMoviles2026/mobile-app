@@ -75,33 +75,18 @@ fun RolePickerScreen(app: AppState) {
 }
 
 @Composable
-fun ProfileScreen(app: AppState, brand: Boolean) {
-    var name by remember { mutableStateOf(if (brand) app.brandProfile.name else app.creatorProfile.name) }
-    var area by remember { mutableStateOf(if (brand) app.brandProfile.category else app.creatorProfile.niche) }
+fun BrandProfileScreen(app: AppState) {
+    var name by remember { mutableStateOf(app.brandProfile.name) }
+    var area by remember { mutableStateOf(app.brandProfile.category) }
     var location by remember { mutableStateOf(app.brandProfile.location) }
-    var detail by remember { mutableStateOf(if (brand) app.brandProfile.description else "Creo videos de gastronomía y experiencias locales.") }
+    var detail by remember { mutableStateOf(app.brandProfile.description) }
     var saved by remember { mutableStateOf(false) }
-    Page(if (brand) "Perfil de empresa" else "Perfil de creador", subtitle = "Esta es la información que verán tus posibles colaboradores.", onBack = app::back) {
-        item { Entry(if (brand) "Nombre comercial" else "Nombre público", name, { name = it }) }
-        item { Entry(if (brand) "Rubro" else "Nicho", area, { area = it }) }
+    Page("Perfil de empresa", subtitle = "Esta es la información que verán tus posibles colaboradores.", onBack = app::back) {
+        item { Entry("Nombre comercial", name, { name = it }) }
+        item { Entry("Rubro", area, { area = it }) }
         item { Entry("Ubicación", location, { location = it }) }
-        if (!brand) item { LocalEntry("Audiencia principal", app.creatorProfile.audience) }
         item { Entry("Descripción", detail, { detail = it }, singleLine = false) }
         if (saved) item { Notice("Cambios visibles en esta vista previa.") }
         item { Action("Guardar perfil") { saved = true } }
-        if (!brand) item { Action("Redes sociales", { app.go(Route.SOCIAL_ACCOUNTS) }, secondary = true) }
-    }
-}
-
-@Composable
-fun SocialAccountsScreen(app: AppState) {
-    var platform by remember { mutableStateOf("Instagram") }; var state by remember { mutableStateOf("Sin vincular") }
-    Page("Redes sociales", subtitle = "Muestra tus canales y revisa qué información compartirías.", onBack = app::back) {
-        item { ChoiceRow(listOf("Instagram", "TikTok"), platform) { platform = it; state = "Sin vincular" } }
-        item { Panel(platform) { InfoRow("Estado", state); Text("El acceso a datos de perfil y métricas requiere autorización de la red social.") } }
-        item { Action("Simular autorización") { state = "Vinculada" } }
-        item { Action("Simular autorización rechazada", { state = "Autorización rechazada" }, secondary = true) }
-        item { Action("Ver cuenta ya vinculada", { state = "Cuenta ya vinculada" }, secondary = true) }
-        item { Notice("La vinculación OAuth real se incorporará al integrar el proveedor externo.") }
     }
 }

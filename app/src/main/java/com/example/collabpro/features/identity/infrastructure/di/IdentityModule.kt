@@ -31,5 +31,5 @@ internal object IdentityModule {
     @Provides @Singleton fun api(retrofit: Retrofit): IdentityApi = retrofit.create(IdentityApi::class.java)
     @Provides @Singleton fun repository(api: IdentityApi, executor: ApiExecutor): IdentityRepository = RemoteIdentityRepository(api, executor)
     @Provides @Singleton fun useCases(repository: IdentityRepository, store: SessionStore) = IdentityUseCases(repository, store)
-    @Provides fun authentication(repository: IdentityRepository, store: SessionStore, clock: Clock) = AuthenticationSession(repository, store, clock)
+    @Provides @Singleton fun authentication(repository: IdentityRepository, store: SessionStore, clock: Clock) = AuthenticationSession(repository, store, clock)
 }

@@ -94,4 +94,5 @@ tasks.withType<org.gradle.api.tasks.testing.Test>().configureEach {
     // Switching the explicit integration environment must rerun tests rather than reuse a skipped result.
     inputs.property("collabproAuthTestApi", providers.environmentVariable("COLLABPRO_AUTH_TEST_API").getOrElse(""))
     inputs.property("collabproAuthTestMailpit", providers.environmentVariable("COLLABPRO_AUTH_TEST_MAILPIT").getOrElse(""))
+    inputs.property("collabproIdentityTestApi", providers.environmentVariable("COLLABPRO_IDENTITY_TEST_API").getOrElse(""))
 }

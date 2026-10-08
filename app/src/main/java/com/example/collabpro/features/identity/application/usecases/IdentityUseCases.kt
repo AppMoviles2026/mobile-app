@@ -3,6 +3,8 @@ package com.example.collabpro.features.identity.application.usecases
 import com.example.collabpro.features.identity.domain.model.*
 import com.example.collabpro.features.identity.domain.repositories.IdentityRepository
 import com.example.collabpro.features.identity.domain.repositories.SessionStore
+import com.example.collabpro.features.identity.application.profile.CreatorProfileValidation
+import com.example.collabpro.core.domain.ApiResult
 import java.util.UUID
 
 /** Public authentication calls never silently log out or overwrite an existing session. */
@@ -28,7 +30,10 @@ class GetCreatorProfile(private val repository: IdentityRepository) {
     suspend operator fun invoke() = repository.creatorProfile()
 }
 class UpdateCreatorProfile(private val repository: IdentityRepository) {
-    suspend operator fun invoke(update: CreatorProfileUpdate) = repository.updateCreatorProfile(update)
+    suspend operator fun invoke(update: CreatorProfileUpdate): ApiResult<CreatorProfile> {
+        val failure = CreatorProfileValidation.validate(update)
+        return if (failure == null) repository.updateCreatorProfile(update) else ApiResult.Failure(failure)
+    }
 }
 class StartSocialAuthorization(private val repository: IdentityRepository) {
     suspend operator fun invoke(platform: SocialPlatform) = repository.authorizeSocialAccount(platform)

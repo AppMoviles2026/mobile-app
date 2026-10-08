@@ -20,7 +20,9 @@ data class CreatorProfile(
 enum class SocialPlatform(val wireValue: String) { INSTAGRAM("instagram"), TIKTOK("tiktok") }
 enum class SocialAccountStatus { ACTIVE, REVOKED }
 data class SocialAccount(val id: UUID, val platform: SocialPlatform, val username: String, val status: SocialAccountStatus)
-data class SocialAuthorization(val authorizationUrl: URI, val authorizationId: UUID)
+data class SocialAuthorization(val authorizationUrl: URI, val authorizationId: UUID) {
+    override fun toString() = "SocialAuthorization(authorizationId=$authorizationId, url=<redacted>)"
+}
 enum class AuthorizationStatus { PENDING, SUCCEEDED, FAILED, EXPIRED }
 data class AuthorizationAttempt(
     val authorizationId: UUID, val platform: SocialPlatform, val status: AuthorizationStatus,

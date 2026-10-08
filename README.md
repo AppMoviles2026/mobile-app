@@ -1,8 +1,8 @@
-# CollabPro Android — DDD y autenticación real
+# CollabPro Android — DDD, autenticación y perfil real
 
-Aplicación Android en Kotlin y Jetpack Compose basada en el reporte. **Registro de empresa/creador, login, cuenta actual y recuperación de contraseña ya consumen el backend real.** El rol viene del servidor y la sesión JWT se guarda cifrada. Las otras pantallas US-12–US-30 conservan su recorrido de prototipo, identificado como vista previa; no realizan OAuth, campañas, cobros ni cargas de archivos reales todavía.
+Aplicación Android en Kotlin y Jetpack Compose basada en el reporte. **Registro de empresa/creador, login, cuenta actual, recuperación, perfil del creador y vinculación social ya consumen el backend real.** El rol viene del servidor y la sesión JWT se guarda cifrada. Instagram/TikTok se autorizan en el navegador y su resultado se verifica en el backend; requieren configurar los proveedores allí. Perfil empresarial, campañas y demás pantallas conservan su recorrido de prototipo identificado como vista previa.
 
-Las fases 2 y 3 están implementadas. Consulta [Autenticación real: funcionamiento, ejecución y pruebas](docs/AUTENTICACION_MOVIL_V1.md), [Base móvil DDD](docs/BASE_MOVIL_DDD_V1.md) y el [plan final](docs/PLAN_IMPLEMENTACION_FINAL_V1.md). El siguiente paso es conectar perfil de creador y redes, sin implementar las historias posteriores del backlog.
+Las fases 2, 3 y 4 están implementadas. Consulta [Perfil creador, redes y configuración OAuth](docs/PERFIL_CREADOR_Y_REDES_V1.md), [Autenticación real](docs/AUTENTICACION_MOVIL_V1.md), [Base móvil DDD](docs/BASE_MOVIL_DDD_V1.md) y el [plan final](docs/PLAN_IMPLEMENTACION_FINAL_V1.md). El siguiente paso es creación de campañas, dentro del alcance de las primeras 18 posiciones del backlog.
 
 ## Recorridos y cobertura
 

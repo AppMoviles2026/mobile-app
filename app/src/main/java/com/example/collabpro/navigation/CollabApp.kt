@@ -24,23 +24,28 @@ import com.example.collabpro.features.collaboration.presentation.*
 import com.example.collabpro.features.identity.presentation.*
 import com.example.collabpro.features.identity.presentation.auth.*
 import com.example.collabpro.features.identity.application.auth.SessionState
+import com.example.collabpro.features.identity.presentation.profile.*
 import com.example.collabpro.features.performance.presentation.*
 
 @Composable
-fun CollabApp(authentication: AuthenticationViewModel) {
+fun CollabApp(authentication: AuthenticationViewModel, creatorIdentity: CreatorIdentityViewModel) {
     Surface(Modifier.fillMaxSize()) {
-        Box(Modifier.fillMaxSize().safeDrawingPadding()) { AuthenticationContent(authentication) }
+        Box(Modifier.fillMaxSize().safeDrawingPadding()) { AuthenticationContent(authentication, creatorIdentity) }
     }
 }
 
 @Composable
-private fun AuthenticationContent(authentication: AuthenticationViewModel) {
+private fun AuthenticationContent(authentication: AuthenticationViewModel, creatorIdentity: CreatorIdentityViewModel) {
     val session by authentication.session.collectAsStateWithLifecycle()
     val ui by authentication.ui.collectAsStateWithLifecycle()
+    val identityUi by creatorIdentity.ui.collectAsStateWithLifecycle()
     val publicApp = rememberSaveable(saver = Saver<AppState, List<String>>(save = { it.snapshot() }, restore = { AppState().apply { restore(it) } })) { AppState() }
     LaunchedEffect(authentication) { authentication.events.collect { publicApp.resetToLogin() } }
     LaunchedEffect(session) {
         if (session is SessionState.SignedOut && (session as SessionState.SignedOut).notice != null) publicApp.resetToLogin()
+    }
+    LaunchedEffect(session, identityUi.awaitingLogin) {
+        if (session is SessionState.SignedOut && identityUi.awaitingLogin) publicApp.resetToLogin()
     }
     if (ui.reset.isOpen) {
         BackHandler { authentication.dismissPasswordReset() }
@@ -53,11 +58,12 @@ private fun AuthenticationContent(authentication: AuthenticationViewModel) {
     when (val current = session) {
         SessionState.Restoring -> SessionGateScreen()
         is SessionState.VerificationFailed -> SessionGateScreen(current.failure, authentication::restoreSession, authentication::signOut)
-        is SessionState.SignedOut -> PublicRoutes(publicApp, ui, current.notice, authentication)
+        is SessionState.SignedOut -> PublicRoutes(publicApp, ui, identityUi.externalNotice ?: current.notice, authentication)
         is SessionState.Authenticated -> key(current.account.accountId, current.expiresAt) {
             // Not saveable: re-verification and account changes always get a clean private back stack.
             val app = remember { AppState(current.account) }
-            PrivateRoutes(app, authentication::signOut)
+            LaunchedEffect(current.account) { app.updateAccount(current.account) }
+            PrivateRoutes(app, authentication::signOut, creatorIdentity, identityUi)
         }
     }
 }
@@ -97,7 +103,17 @@ private fun PublicRoutes(app: AppState, ui: AuthenticationUiState, notice: Strin
 }
 
 @Composable
-private fun PrivateRoutes(app: AppState, onSignOut: () -> Unit) {
+private fun PrivateRoutes(app: AppState, onSignOut: () -> Unit, creatorIdentity: CreatorIdentityViewModel, identityUi: CreatorIdentityUiState) {
+    LaunchedEffect(identityUi.showSocial) {
+        if (identityUi.showSocial && app.role == UserRole.CREATOR) { app.go(Route.SOCIAL_ACCOUNTS); creatorIdentity.consumeSocialNavigation() }
+    }
+    LaunchedEffect(app.route) {
+        when (app.route) {
+            Route.CREATOR_PROFILE -> if (app.role == UserRole.CREATOR) creatorIdentity.loadProfile()
+            Route.SOCIAL_ACCOUNTS -> if (app.role == UserRole.CREATOR) creatorIdentity.loadSocialAccounts()
+            else -> Unit
+        }
+    }
     val home = if (app.role == UserRole.BRAND) Route.BRAND_HOME else Route.CREATOR_HOME
     BackHandler(enabled = app.route != home) { app.back() }
     val tabs = if (app.role == UserRole.BRAND) listOf(
@@ -112,7 +128,8 @@ private fun PrivateRoutes(app: AppState, onSignOut: () -> Unit) {
                     modifier = Modifier.weight(1f), style = MaterialTheme.typography.labelLarge)
                 TextButton(onClick = onSignOut) { Text("Cerrar sesión") }
             }
-            if (app.route != home) Text("Vista previa • esta función aún no está conectada", Modifier.padding(horizontal = 16.dp, vertical = 4.dp), style = MaterialTheme.typography.labelSmall)
+            identityUi.externalNotice?.let { Text(it, Modifier.padding(horizontal = 16.dp), style = MaterialTheme.typography.labelSmall) }
+            if (app.route != home && app.route !in listOf(Route.CREATOR_PROFILE, Route.SOCIAL_ACCOUNTS)) Text("Vista previa • esta función aún no está conectada", Modifier.padding(horizontal = 16.dp, vertical = 4.dp), style = MaterialTheme.typography.labelSmall)
         }
     }, bottomBar = {
         NavigationBar {
@@ -125,9 +142,14 @@ private fun PrivateRoutes(app: AppState, onSignOut: () -> Unit) {
             when (app.route) {
                 Route.BRAND_HOME -> HomeScreen(app, true, onSignOut)
                 Route.CREATOR_HOME -> HomeScreen(app, false, onSignOut)
-                Route.BRAND_PROFILE -> ProfileScreen(app, true)
-                Route.CREATOR_PROFILE -> ProfileScreen(app, false)
-                Route.SOCIAL_ACCOUNTS -> SocialAccountsScreen(app)
+                Route.BRAND_PROFILE -> BrandProfileScreen(app)
+                Route.CREATOR_PROFILE -> CreatorProfileScreen(identityUi.profile, creatorIdentity::editProfile,
+                    creatorIdentity::saveProfile, onReload = { creatorIdentity.loadProfile(force = true) },
+                    onDiscard = creatorIdentity::discardChanges, onRefreshAccount = creatorIdentity::refreshAccountName,
+                    onSocial = { app.go(Route.SOCIAL_ACCOUNTS) }, onBack = app::back)
+                Route.SOCIAL_ACCOUNTS -> LinkedSocialAccountsScreen(identityUi.social, creatorIdentity::startAuthorization,
+                    creatorIdentity::loadSocialAccounts, creatorIdentity::checkAuthorization, creatorIdentity::reopenBrowser,
+                    creatorIdentity::forgetAttempt, app::back)
                 Route.CAMPAIGN_SEARCH -> CampaignSearchScreen(app)
                 Route.CAMPAIGN_DETAIL -> CampaignDetailScreen(app)
                 Route.APPLICATION_FORM -> ApplicationFormScreen(app)

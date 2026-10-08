@@ -30,7 +30,13 @@ enum class Route {
     COMPENSATION, RESULTS, HISTORY, HISTORY_DETAIL
 }
 
-class AppState(val authenticatedAccount: Account? = null) {
+class AppState(authenticatedAccount: Account? = null) {
+    var authenticatedAccount by mutableStateOf(authenticatedAccount)
+        private set
+    fun updateAccount(account: Account) {
+        if (account.accountId == authenticatedAccount?.accountId && account.accountType == authenticatedAccount?.accountType)
+            authenticatedAccount = account
+    }
     val campaigns: List<Campaign> = BrowseCampaigns(PreviewCampaigns)()
     private val profiles = LoadProfiles(PreviewProfiles)
     val brandProfile = profiles.brand()
@@ -55,6 +61,8 @@ class AppState(val authenticatedAccount: Account? = null) {
         if (authenticatedAccount != null && destination.ordinal < Route.BRAND_HOME.ordinal) return
         if (authenticatedAccount != null && ((destination == Route.BRAND_HOME && role != UserRole.BRAND) ||
             (destination == Route.CREATOR_HOME && role != UserRole.CREATOR))) return
+        if (authenticatedAccount != null && ((destination in listOf(Route.CREATOR_PROFILE, Route.SOCIAL_ACCOUNTS) && role != UserRole.CREATOR) ||
+            (destination == Route.BRAND_PROFILE && role != UserRole.BRAND))) return
         if (route == destination) return
         backStack.add(route)
         variant = ""

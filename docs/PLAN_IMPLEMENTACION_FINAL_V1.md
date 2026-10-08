@@ -196,7 +196,7 @@ Modelar Account/Session/CreatorProfile/SocialAccount/AuthorizationAttempt y Camp
 
 ### Fase 3. Registro, sesión y recuperación
 
-**Implementada el 8 de octubre de 2026.** `AUTENTICACION_MOVIL_V1.md` documenta las seis operaciones conectadas, el coordinador Application, ViewModel/Screens, sesión verificada, aislamiento de navegación, expiración y deep link de nueva contraseña. Se eliminaron login por cualquier password, selector de rol y errores simulados. Las pruebas incluyen MySQL y entrega SMTP a Mailpit, reset de un solo uso y revocación del JWT anterior. La comprobación visual/interacción en teléfono o AVD continúa pendiente por ausencia de dispositivo conectado; perfiles/redes y demás flujos siguen en fases 4–8.
+**Implementada el 8 de octubre de 2026.** `AUTENTICACION_MOVIL_V1.md` documenta las seis operaciones conectadas, el coordinador Application, ViewModel/Screens, sesión verificada, aislamiento de navegación, expiración y deep link de nueva contraseña. Se eliminaron login por cualquier password, selector de rol y errores simulados. Las pruebas incluyen MySQL y entrega SMTP a Mailpit, reset de un solo uso y revocación del JWT anterior. La comprobación visual/interacción en teléfono o AVD continúa pendiente por ausencia de dispositivo conectado. La fase 4 también está implementada; las fases 5–8 siguen pendientes.
 
 Conectar E01–E06: registro de ambos tipos → Login; rol del servidor; restauración verificada; expiración; logout local; deep link de nueva contraseña y 204. Quitar acceso por cualquier password y mensajes simulados. Contraseña mínima 8, máxima 128, input protegido.
 
@@ -205,6 +205,8 @@ Separar almacenamiento privado cifrado de sesión de navegación/formularios, si
 **Validación:** acceso por rol, credenciales inválidas, arranque frío, vencimiento, recuperación Mailpit, reset de uso único y revocación de sesión anterior.
 
 ### Fase 4. Perfil creador y OAuth
+
+**Implementada el 8 de octubre de 2026.** Guía: `PERFIL_CREADOR_Y_REDES_V1.md`. Los cinco campos se precargan/guardan en el backend, con validación y errores sin perder la edición. Redes utiliza navegador oficial, retorno Android validado, consulta de intento y lista real. Se distinguen rechazo, duplicado, expiración, pendiente y fallos de proveedor/red. Sesión compartida, metadatos de cuenta actualizados tras PUT, seguimiento sin secretos en SavedStateHandle y respuestas tardías descartadas. 123 pruebas JVM pasan con MySQL/Mailpit y retorno 303 rechazado real; la autorización exitosa en proveedores y la comprobación en teléfono/AVD siguen pendientes de credenciales/dispositivo.
 
 Conectar E07/E08 con los cinco campos editables, incluida audiencia, y precarga real. Conectar E09–E11/E26 con navegador, retorno fijo, consulta de intento y lista social real. El perfil empresarial usa únicamente E06 en el recorrido operativo; la pantalla US-12 completa continúa como prototipo.
 

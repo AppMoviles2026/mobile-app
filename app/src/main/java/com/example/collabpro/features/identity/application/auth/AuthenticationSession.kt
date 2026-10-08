@@ -34,6 +34,37 @@ class AuthenticationSession(
 
     fun cancelPendingAuthentication() { generation.incrementAndGet() }
 
+    /** Refresh server-owned metadata after a profile change without replacing the private navigation. */
+    suspend fun refreshAccount(): ApiResult<Unit> {
+        val expected = state.value as? SessionState.Authenticated ?: return changedSession()
+        val attempt = generation.get()
+        val result = repository.currentAccount()
+        return mutex.withLock {
+            if (attempt != generation.get() || state.value != expected) return@withLock changedSession()
+            val candidate = store.read() ?: return@withLock changedSession()
+            if (candidate.accessToken != verifiedToken) return@withLock changedSession()
+            when (result) {
+                is ApiResult.Failure -> result
+                is ApiResult.Success -> {
+                    val account = result.value
+                    if (account.accountId != expected.account.accountId || account.profileId != expected.account.profileId ||
+                        account.accountType != expected.account.accountType || account.status != AccountStatus.ACTIVE) {
+                        return@withLock ApiResult.Failure(ApiFailure(FailureKind.MALFORMED_RESPONSE,
+                            message = "El servidor devolvió una cuenta diferente a la sesión verificada."))
+                    }
+                    if (!candidate.expiresAt.isAfter(clock.instant())) return@withLock changedSession()
+                    when (val saved = store.save(candidate.copy(account = account))) {
+                        is ApiResult.Failure -> saved
+                        is ApiResult.Success -> {
+                            mutableState.value = expected.copy(account = account)
+                            ApiResult.Success(Unit)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     suspend fun restore() {
         val attempt = generation.incrementAndGet()
         mutableState.value = SessionState.Restoring
