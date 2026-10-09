@@ -64,7 +64,7 @@ fun LinkedSocialAccountsScreen(
     state: SocialAccountsUiState, onAuthorize: (SocialPlatform) -> Unit = {}, onReload: () -> Unit = {},
     onCheck: () -> Unit = {}, onReopenBrowser: () -> Unit = {}, onForget: () -> Unit = {}, onBack: () -> Unit = {}
 ) {
-    var confirmForget by remember { mutableStateOf(false) }
+    var confirmForget by remember(state.link?.authorizationId, state.link?.status) { mutableStateOf(false) }
     if (confirmForget) AlertDialog(onDismissRequest = { confirmForget = false }, title = { Text("¿Dejar de seguir este intento?") },
         text = { Text("Esto solo quita el intento de esta pantalla. No cancela la autorización en el servidor ni desvincula cuentas. Un permiso concedido en el navegador todavía podría completarse.") },
         confirmButton = { TextButton(onClick = { confirmForget = false; onForget() }) { Text("Dejar de seguir") } },
@@ -93,7 +93,7 @@ fun LinkedSocialAccountsScreen(
             } }
         }
         item { Text("Cuentas vinculadas", style = MaterialTheme.typography.titleLarge) }
-        if (state.loaded && state.accounts.isEmpty()) item { Notice("Aún no tienes cuentas sociales vinculadas.") }
+        if (state.loaded && !state.loading && state.failure == null && state.accounts.isEmpty()) item { Notice("Aún no tienes cuentas sociales vinculadas.") }
         if (state.loaded && state.failure != null) item { Text("La lista conserva la última consulta correcta; podría estar desactualizada.") }
         items(state.accounts, key = { it.id.toString() }) { account ->
             Panel(account.platform.displayLabel()) {

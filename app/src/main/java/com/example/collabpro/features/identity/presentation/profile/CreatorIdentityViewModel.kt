@@ -4,6 +4,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.collabpro.core.domain.*
+import com.example.collabpro.core.application.security.ExpectedAccount
 import com.example.collabpro.features.identity.application.auth.AuthenticationSession
 import com.example.collabpro.features.identity.application.auth.SessionState
 import com.example.collabpro.features.identity.application.social.SocialAuthorizationReturn
@@ -14,13 +15,15 @@ import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.*
 import java.util.UUID
+import java.time.Clock
 import javax.inject.Inject
 
 @HiltViewModel
 class CreatorIdentityViewModel @Inject constructor(
     private val useCases: IdentityUseCases,
     private val authentication: AuthenticationSession,
-    private val savedState: SavedStateHandle
+    private val savedState: SavedStateHandle,
+    private val clock: Clock
 ) : ViewModel() {
     private val mutableUi = MutableStateFlow(CreatorIdentityUiState())
     val ui = mutableUi.asStateFlow()
@@ -38,6 +41,7 @@ class CreatorIdentityViewModel @Inject constructor(
     private var queuedReturn: UUID? = savedState.get<String>(RETURN_ID)?.let { runCatching { UUID.fromString(it) }.getOrNull() }
     private var invalidReturn = false
     private var browserRequest: OpenSocialBrowser? = null
+    private val handledReturns = linkedSetOf<UUID>()
 
     init {
         if (queuedReturn != null) mutableUi.value = CreatorIdentityUiState(awaitingLogin = true,
@@ -62,7 +66,7 @@ class CreatorIdentityViewModel @Inject constructor(
         cancelRequests()
         owner = current.account
         sessionExpiry = current.expiresAt
-        mutableUi.value = CreatorIdentityUiState()
+        mutableUi.value = CreatorIdentityUiState(ownerId = current.account.accountId, expiresAt = current.expiresAt)
         if (current.account.accountType != AccountType.CREATOR) {
             clearPending()
             if (queuedReturn != null || invalidReturn) mutableUi.update { it.copy(externalNotice = "La vinculación de redes requiere una cuenta de creador.") }
@@ -85,19 +89,22 @@ class CreatorIdentityViewModel @Inject constructor(
         profileJob?.cancel(); socialJob?.cancel(); startJob?.cancel(); checkJob?.cancel()
         profileJob = null; socialJob = null; startJob = null; checkJob = null
         browserRequest = null
+        handledReturns.clear()
     }
     private fun activeCreator(): Account? = owner?.takeIf {
         val session = authentication.state.value as? SessionState.Authenticated
-        it.accountType == AccountType.CREATOR && session?.account?.accountId == it.accountId && session.expiresAt == sessionExpiry
+        it.accountType == AccountType.CREATOR && it.status == AccountStatus.ACTIVE && session?.account?.accountId == it.accountId &&
+            session.expiresAt == sessionExpiry && session.expiresAt.isAfter(clock.instant())
     }
     private fun current(revision: Long) = revision == generation && activeCreator() != null
+    private fun launchForOwner(block: suspend CoroutineScope.() -> Unit) = viewModelScope.launch(ExpectedAccount(owner!!.accountId, sessionExpiry!!), block = block)
 
     fun loadProfile(force: Boolean = false) {
         val account = activeCreator() ?: return
         if (profileJob?.isActive == true || (!force && ui.value.profile.profile != null)) return
         val revision = generation
         mutableUi.update { it.copy(profile = it.profile.copy(loading = true, failure = null, notice = null)) }
-        profileJob = viewModelScope.launch {
+        profileJob = launchForOwner launch@ {
             val result = useCases.getCreatorProfile()
             if (!current(revision)) return@launch
             mutableUi.update { state -> state.copy(profile = when (result) {
@@ -128,7 +135,7 @@ class CreatorIdentityViewModel @Inject constructor(
         if (profileJob?.isActive == true || input.profile == null || !input.dirty) return
         val revision = generation
         mutableUi.update { it.copy(profile = input.copy(saving = true, failure = null, notice = null)) }
-        profileJob = viewModelScope.launch {
+        profileJob = launchForOwner launch@ {
             when (val result = useCases.updateCreatorProfile(input.draft.request())) {
                 is ApiResult.Failure -> if (current(revision)) mutableUi.update {
                     it.copy(profile = input.copy(saving = false, failure = result.error))
@@ -155,7 +162,7 @@ class CreatorIdentityViewModel @Inject constructor(
     fun refreshAccountName() {
         if (activeCreator() == null || profileJob?.isActive == true) return
         val revision = generation
-        profileJob = viewModelScope.launch {
+        profileJob = launchForOwner launch@ {
             val result = authentication.refreshAccount()
             if (!current(revision)) return@launch
             mutableUi.update { it.copy(profile = it.profile.copy(accountRefreshFailed = result is ApiResult.Failure,
@@ -168,11 +175,13 @@ class CreatorIdentityViewModel @Inject constructor(
         val revision = generation
         val request = ++socialRevision
         mutableUi.update { it.copy(social = it.social.copy(loading = true, failure = null)) }
-        socialJob = viewModelScope.launch {
+        socialJob = launchForOwner launch@ {
             val result = useCases.getSocialAccounts()
             if (!current(revision) || request != socialRevision) return@launch
             mutableUi.update { state -> state.copy(social = when (result) {
-                is ApiResult.Success -> state.social.copy(accounts = result.value, loaded = true, loading = false)
+                is ApiResult.Success -> if (result.value.map { it.id }.distinct().size != result.value.size || result.value.any { it.username.isBlank() })
+                    state.social.copy(loading = false, failure = malformed())
+                    else state.social.copy(accounts = result.value, loaded = true, loading = false)
                 is ApiResult.Failure -> state.social.copy(loading = false, failure = result.error)
             }) }
         }
@@ -183,7 +192,7 @@ class CreatorIdentityViewModel @Inject constructor(
         if (startJob?.isActive == true || checkJob?.isActive == true || ui.value.social.link?.status == AuthorizationStatus.PENDING) return
         val revision = generation
         mutableUi.update { it.copy(social = it.social.copy(starting = platform, failure = null, link = null)) }
-        startJob = viewModelScope.launch {
+        startJob = launchForOwner launch@ {
             when (val result = useCases.startSocialAuthorization(platform)) {
                 is ApiResult.Failure -> if (current(revision)) mutableUi.update {
                     it.copy(social = it.social.copy(starting = null, failure = result.error))
@@ -198,7 +207,7 @@ class CreatorIdentityViewModel @Inject constructor(
                     trackPending(authorization.authorizationId, platform)
                     mutableUi.update { it.copy(social = it.social.copy(starting = null,
                         link = SocialLinkUiState(authorization.authorizationId, platform, message = "Autoriza en el navegador. Volver a la app no confirma la vinculación."))) }
-                    val event = OpenSocialBrowser(account.accountId, authorization.authorizationId, platform, authorization.authorizationUrl)
+                    val event = OpenSocialBrowser(account.accountId, authorization.authorizationId, platform, authorization.authorizationUrl, sessionExpiry!!)
                     browserRequest = event
                     browser.send(event)
                 }
@@ -207,17 +216,18 @@ class CreatorIdentityViewModel @Inject constructor(
     }
 
     fun canOpenBrowser(event: OpenSocialBrowser): Boolean = activeCreator()?.accountId == event.owner &&
+        sessionExpiry == event.expiresAt && browserRequest === event &&
         ui.value.social.link?.let { it.authorizationId == event.authorizationId && it.status == AuthorizationStatus.PENDING } == true &&
         SocialAuthorizationReturn.trustedBrowserUrl(event.uri, event.platform)
 
     fun browserUnavailable(event: OpenSocialBrowser) {
         if (!canOpenBrowser(event)) return
         mutableUi.update { it.copy(social = it.social.copy(link = it.social.link?.copy(
-            failure = ApiFailure(FailureKind.CONFIGURATION, "BROWSER_UNAVAILABLE", "No se pudo abrir el navegador. Instala o habilita un navegador e inténtalo de nuevo.")))) }
+            failure = ApiFailure(FailureKind.CONFIGURATION, "BROWSER_UNAVAILABLE", "No se pudo abrir Custom Tabs. Instala o habilita un navegador compatible y vuelve a intentarlo.")))) }
     }
     fun reopenBrowser() {
         val event = browserRequest ?: return
-        if (canOpenBrowser(event)) viewModelScope.launch { browser.send(event) }
+        if (canOpenBrowser(event)) launchForOwner { browser.send(event) }
     }
 
     fun receiveAuthorizationReturn(rawLink: String) {
@@ -255,6 +265,10 @@ class CreatorIdentityViewModel @Inject constructor(
                 "MISMATCHED_SOCIAL_RETURN", "El enlace no corresponde a la autorización pendiente. No se cambió su estado."))) }
             return
         }
+        // Duplicate Android delivery must not cancel/restart an in-flight read or reset a terminal result.
+        // The provider callback is exclusively processed by the backend; we only ever read its result.
+        if (!handledReturns.add(id)) return
+        if (handledReturns.size > 32) handledReturns.remove(handledReturns.first())
         checkRevision++; checkJob?.cancel(); checkJob = null
         val platform = previous?.takeIf { link -> link.authorizationId == id }?.platform
         trackPending(id, platform)
@@ -273,7 +287,7 @@ class CreatorIdentityViewModel @Inject constructor(
         val revision = generation
         val request = ++checkRevision
         mutableUi.update { it.copy(social = it.social.copy(link = link.copy(checking = true, failure = null))) }
-        checkJob = viewModelScope.launch {
+        checkJob = launchForOwner launch@ {
             // Bounded retries cover a return while the backend is finishing; no endless polling.
             repeat(3) { index ->
                 val result = useCases.getAuthorizationStatus(link.authorizationId)

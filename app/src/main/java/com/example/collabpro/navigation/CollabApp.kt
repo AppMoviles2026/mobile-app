@@ -28,24 +28,26 @@ import com.example.collabpro.features.identity.presentation.profile.*
 import com.example.collabpro.features.campaign.presentation.manage.*
 import com.example.collabpro.features.campaign.presentation.discovery.*
 import com.example.collabpro.features.campaign.presentation.applications.*
+import com.example.collabpro.features.campaign.presentation.dashboard.*
 import com.example.collabpro.features.campaign.application.drafts.PreparationGoal
 import com.example.collabpro.features.performance.presentation.*
 
 @Composable
-fun CollabApp(authentication: AuthenticationViewModel, creatorIdentity: CreatorIdentityViewModel, brandCampaigns: BrandCampaignViewModel, campaignDiscovery: CampaignDiscoveryViewModel, ownApplications: OwnApplicationsViewModel) {
+fun CollabApp(authentication: AuthenticationViewModel, creatorIdentity: CreatorIdentityViewModel, brandCampaigns: BrandCampaignViewModel, campaignDiscovery: CampaignDiscoveryViewModel, ownApplications: OwnApplicationsViewModel, dashboard: ActivityDashboardViewModel) {
     Surface(Modifier.fillMaxSize()) {
-        Box(Modifier.fillMaxSize().safeDrawingPadding()) { AuthenticationContent(authentication, creatorIdentity, brandCampaigns, campaignDiscovery, ownApplications) }
+        Box(Modifier.fillMaxSize().safeDrawingPadding()) { AuthenticationContent(authentication, creatorIdentity, brandCampaigns, campaignDiscovery, ownApplications, dashboard) }
     }
 }
 
 @Composable
-private fun AuthenticationContent(authentication: AuthenticationViewModel, creatorIdentity: CreatorIdentityViewModel, brandCampaigns: BrandCampaignViewModel, campaignDiscovery: CampaignDiscoveryViewModel, ownApplications: OwnApplicationsViewModel) {
+private fun AuthenticationContent(authentication: AuthenticationViewModel, creatorIdentity: CreatorIdentityViewModel, brandCampaigns: BrandCampaignViewModel, campaignDiscovery: CampaignDiscoveryViewModel, ownApplications: OwnApplicationsViewModel, dashboard: ActivityDashboardViewModel) {
     val session by authentication.session.collectAsStateWithLifecycle()
     val ui by authentication.ui.collectAsStateWithLifecycle()
     val identityUi by creatorIdentity.ui.collectAsStateWithLifecycle()
     val campaignUi by brandCampaigns.ui.collectAsStateWithLifecycle()
     val discoveryUi by campaignDiscovery.ui.collectAsStateWithLifecycle()
     val applicationsUi by ownApplications.ui.collectAsStateWithLifecycle()
+    val dashboardUi by dashboard.ui.collectAsStateWithLifecycle()
     val publicApp = rememberSaveable(saver = Saver<AppState, List<String>>(save = { it.snapshot() }, restore = { AppState().apply { restore(it) } })) { AppState() }
     LaunchedEffect(authentication) { authentication.events.collect { publicApp.resetToLogin() } }
     LaunchedEffect(session) {
@@ -70,10 +72,12 @@ private fun AuthenticationContent(authentication: AuthenticationViewModel, creat
             // Not saveable: re-verification and account changes always get a clean private back stack.
             val app = remember { AppState(current.account) }
             LaunchedEffect(current.account) { app.updateAccount(current.account) }
-            PrivateRoutes(app, authentication::signOut, creatorIdentity, identityUi, brandCampaigns,
-                campaignUi.takeIf { it.ownerId == current.account.accountId } ?: BrandCampaignUiState(), campaignDiscovery,
+            PrivateRoutes(app, authentication::signOut, creatorIdentity,
+                identityUi.takeIf { it.ownerId == current.account.accountId && it.expiresAt == current.expiresAt } ?: CreatorIdentityUiState(), brandCampaigns,
+                campaignUi.takeIf { it.ownerId == current.account.accountId && it.expiresAt == current.expiresAt } ?: BrandCampaignUiState(), campaignDiscovery,
                 discoveryUi.takeIf { it.ownerId == current.account.accountId && it.expiresAt == current.expiresAt } ?: CampaignDiscoveryUiState(), ownApplications,
-                applicationsUi.takeIf { it.ownerId == current.account.accountId && it.expiresAt == current.expiresAt } ?: OwnApplicationsUiState())
+                applicationsUi.takeIf { it.ownerId == current.account.accountId && it.expiresAt == current.expiresAt } ?: OwnApplicationsUiState(), dashboard,
+                dashboardUi.takeIf { it.ownerId == current.account.accountId && it.expiresAt == current.expiresAt } ?: ActivityDashboardUiState())
         }
     }
 }
@@ -116,7 +120,13 @@ private fun PublicRoutes(app: AppState, ui: AuthenticationUiState, notice: Strin
 private fun PrivateRoutes(app: AppState, onSignOut: () -> Unit, creatorIdentity: CreatorIdentityViewModel, identityUi: CreatorIdentityUiState,
     brandCampaigns: BrandCampaignViewModel, campaignUi: BrandCampaignUiState,
     campaignDiscovery: CampaignDiscoveryViewModel, discoveryUi: CampaignDiscoveryUiState,
-    ownApplications: OwnApplicationsViewModel, applicationsUi: OwnApplicationsUiState) {
+    ownApplications: OwnApplicationsViewModel, applicationsUi: OwnApplicationsUiState,
+    dashboard: ActivityDashboardViewModel, dashboardUi: ActivityDashboardUiState) {
+    val account = app.authenticatedAccount ?: return
+    DisposableEffect(dashboard) { onDispose { dashboard.onShown(false) } }
+    LaunchedEffect(app.route, dashboardUi.ownerId, dashboardUi.expiresAt) {
+        dashboard.onShown(app.route in listOf(Route.BRAND_HOME, Route.CREATOR_HOME))
+    }
     DisposableEffect(ownApplications) { onDispose { ownApplications.onShown(null) } }
     LaunchedEffect(app.route, applicationsUi.ownerId, applicationsUi.expiresAt) {
         ownApplications.onShown(if (app.role != UserRole.CREATOR) null else when (app.route) {
@@ -158,13 +168,15 @@ private fun PrivateRoutes(app: AppState, onSignOut: () -> Unit, creatorIdentity:
     LaunchedEffect(identityUi.showSocial) {
         if (identityUi.showSocial && app.role == UserRole.CREATOR) { app.go(Route.SOCIAL_ACCOUNTS); creatorIdentity.consumeSocialNavigation() }
     }
-    LaunchedEffect(app.route) {
+    LaunchedEffect(app.route, identityUi.ownerId, identityUi.expiresAt) {
         when (app.route) {
             Route.CREATOR_PROFILE -> if (app.role == UserRole.CREATOR) creatorIdentity.loadProfile()
             Route.SOCIAL_ACCOUNTS -> if (app.role == UserRole.CREATOR) creatorIdentity.loadSocialAccounts()
-            Route.BRAND_CAMPAIGNS -> if (app.role == UserRole.BRAND) brandCampaigns.loadCampaigns(campaignUi.campaigns.page?.page ?: 0)
             else -> Unit
         }
+    }
+    LaunchedEffect(app.route, campaignUi.ownerId, campaignUi.expiresAt) {
+        if (app.route == Route.BRAND_CAMPAIGNS && app.role == UserRole.BRAND) brandCampaigns.loadCampaigns(campaignUi.campaigns.page?.page ?: 0)
     }
     val home = if (app.role == UserRole.BRAND) Route.BRAND_HOME else Route.CREATOR_HOME
     BackHandler(enabled = app.route != home) {
@@ -185,7 +197,7 @@ private fun PrivateRoutes(app: AppState, onSignOut: () -> Unit, creatorIdentity:
             identityUi.externalNotice?.let { Text(it, Modifier.padding(horizontal = 16.dp), style = MaterialTheme.typography.labelSmall) }
             val connectedCampaign = (app.role == UserRole.BRAND && app.route in listOf(Route.BRAND_CAMPAIGNS, Route.CAMPAIGN_FORM, Route.CAMPAIGN_TERMS, Route.CAMPAIGN_DETAIL)) ||
                 (app.role == UserRole.CREATOR && app.route in listOf(Route.CAMPAIGN_SEARCH, Route.CAMPAIGN_DETAIL, Route.APPLICATION_FORM, Route.MY_APPLICATIONS, Route.APPLICATION_DETAIL))
-            if (app.route != home && !connectedCampaign && app.route !in listOf(Route.CREATOR_PROFILE, Route.SOCIAL_ACCOUNTS)) Text("Vista previa • esta función aún no está conectada", Modifier.padding(horizontal = 16.dp, vertical = 4.dp), style = MaterialTheme.typography.labelSmall)
+            if (app.route != home && !connectedCampaign && app.route !in listOf(Route.BRAND_PROFILE, Route.CREATOR_PROFILE, Route.SOCIAL_ACCOUNTS)) Text("PROTOTIPO • datos de ejemplo, no provienen del servidor", Modifier.padding(horizontal = 16.dp, vertical = 4.dp), style = MaterialTheme.typography.labelSmall)
         }
     }, bottomBar = {
         NavigationBar {
@@ -196,12 +208,15 @@ private fun PrivateRoutes(app: AppState, onSignOut: () -> Unit, creatorIdentity:
     }) { padding ->
         androidx.compose.foundation.layout.Box(Modifier.padding(padding)) {
             when (app.route) {
-                Route.BRAND_HOME -> HomeScreen(app, true, onSignOut)
-                Route.CREATOR_HOME -> HomeScreen(app, false, onSignOut) {
+                Route.BRAND_HOME -> HomeScreen(account, onSignOut, onCampaigns = { app.go(Route.BRAND_CAMPAIGNS) },
+                    onProfile = { app.go(Route.BRAND_PROFILE) }, summary = { ActivityDashboardPanel(dashboardUi, dashboard::refresh) })
+                Route.CREATOR_HOME -> HomeScreen(account, onSignOut, onCampaigns = { app.go(Route.CAMPAIGN_SEARCH) },
+                    onProfile = { app.go(Route.CREATOR_PROFILE) }, onApplications = { app.go(Route.MY_APPLICATIONS) },
+                    summary = { ActivityDashboardPanel(dashboardUi, dashboard::refresh) }) {
                     CreatorOpportunitiesPanel(discoveryUi.opportunities, discoveryUi.now, campaignDiscovery::openDetails,
                         onRetry = { campaignDiscovery.loadOpportunities(force = true) }, onExplore = { app.go(Route.CAMPAIGN_SEARCH) })
                 }
-                Route.BRAND_PROFILE -> BrandProfileScreen(app)
+                Route.BRAND_PROFILE -> BrandAccountScreen(account, app::back)
                 Route.CREATOR_PROFILE -> CreatorProfileScreen(identityUi.profile, creatorIdentity::editProfile,
                     creatorIdentity::saveProfile, onReload = { creatorIdentity.loadProfile(force = true) },
                     onDiscard = creatorIdentity::discardChanges, onRefreshAccount = creatorIdentity::refreshAccountName,
@@ -251,7 +266,9 @@ private fun PrivateRoutes(app: AppState, onSignOut: () -> Unit, creatorIdentity:
                 Route.RESULTS -> ResultsScreen(app)
                 Route.HISTORY -> HistoryScreen(app)
                 Route.HISTORY_DETAIL -> HistoryDetailScreen(app)
-                else -> HomeScreen(app, app.role == UserRole.BRAND, onSignOut)
+                else -> HomeScreen(account, onSignOut, onCampaigns = { app.go(if (app.role == UserRole.BRAND) Route.BRAND_CAMPAIGNS else Route.CAMPAIGN_SEARCH) },
+                    onProfile = { app.go(if (app.role == UserRole.BRAND) Route.BRAND_PROFILE else Route.CREATOR_PROFILE) },
+                    onApplications = { app.go(Route.MY_APPLICATIONS) }, summary = { ActivityDashboardPanel(dashboardUi, dashboard::refresh) })
             }
         }
     }

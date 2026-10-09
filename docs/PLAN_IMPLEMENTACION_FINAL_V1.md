@@ -1,6 +1,6 @@
 # Plan final de implementación V1: backend y Android
 
-Fecha: 6 de octubre de 2026. Este documento sustituye las decisiones de implementación del `PLAN_INTEGRACION_BACKEND_V1.md`; aquel conserva el inventario de las 23 operaciones REST que existen actualmente.
+Fecha del plan: 6 de octubre de 2026. Estado actualizado el 8 de octubre de 2026. Este documento sustituye las decisiones de implementación del `PLAN_INTEGRACION_BACKEND_V1.md`; aquel conserva el inventario original de 23 operaciones REST. Con los complementos aprobados hay 26 contratos lógicos, 25 iniciados por Android y uno por el navegador/proveedor.
 
 ## 1. Regla de alcance
 
@@ -180,13 +180,13 @@ Preservar estos límites en ambos proyectos:
 
 ### Fase 1. Estabilizar contrato backend dentro del alcance
 
-JWT y B01–B04 están implementados en backend por solicitud posterior. Validación de acceso encapsulada y documentación de contratos presentes/futuros en su README. La integración móvil sigue pendiente; las rutas generales del README del reporte son una especificación posterior y no deben asumirse operativas.
+JWT y B01–B04 están implementados en backend por solicitud posterior. Validación de acceso encapsulada y documentación de contratos presentes/futuros en su README. La integración móvil de las fases 2–8 también está implementada en código; las rutas generales futuras del README del reporte no deben asumirse operativas.
 
 **Validación:** tests existentes y nuevos de filtros/plazos, ownership, descarte DRAFT, cierre sin efectos en postulaciones, OAuth/resultado, idempotencia y migraciones desde el esquema V5. No marcar como terminada la fase con proveedores reales sin verificar las credenciales y redirect.
 
 ### Fase 2. Infraestructura móvil y modelos
 
-**Implementada el 8 de octubre de 2026.** Detalle y evidencia en `BASE_MOVIL_DDD_V1.md`: 25 operaciones iniciadas por Android y el callback de proveedor documentado por separado, modelos/puertos/casos de uso DDD, Hilt, configuración por entorno y sesión cifrada preparada. La fase 3 ya conecta las pantallas de autenticación; las demás continúan como prototipo.
+**Implementada el 8 de octubre de 2026.** Detalle y evidencia en `BASE_MOVIL_DDD_V1.md`: 25 operaciones iniciadas por Android y el callback de proveedor documentado por separado, modelos/puertos/casos de uso DDD, Hilt, configuración por entorno y sesión cifrada preparada. Las fases 3–8 conectan las pantallas dentro del alcance; solo las historias posteriores continúan como prototipo.
 
 Configurar Retrofit/OkHttp/Gson, Hilt/KSP, lifecycle/ViewModel, navegación y URL por entorno, siguiendo EasyVet sin copiar sus versiones indiscriminadamente. `INTERNET`, HTTP local solo debug, HTTPS release y desugaring para fechas en minSdk 24.
 
@@ -196,7 +196,7 @@ Modelar Account/Session/CreatorProfile/SocialAccount/AuthorizationAttempt y Camp
 
 ### Fase 3. Registro, sesión y recuperación
 
-**Implementada el 8 de octubre de 2026.** `AUTENTICACION_MOVIL_V1.md` documenta las seis operaciones conectadas, el coordinador Application, ViewModel/Screens, sesión verificada, aislamiento de navegación, expiración y deep link de nueva contraseña. Se eliminaron login por cualquier password, selector de rol y errores simulados. Las pruebas incluyen MySQL y entrega SMTP a Mailpit, reset de un solo uso y revocación del JWT anterior. La comprobación visual/interacción en teléfono o AVD continúa pendiente por ausencia de dispositivo conectado. Las fases 4–7 también están implementadas; la fase 8 sigue pendiente.
+**Implementada el 8 de octubre de 2026.** `AUTENTICACION_MOVIL_V1.md` documenta las seis operaciones conectadas, el coordinador Application, ViewModel/Screens, sesión verificada, aislamiento de navegación, expiración y deep link de nueva contraseña. Se eliminaron login por cualquier password, selector de rol y errores simulados. Las pruebas incluyen MySQL y entrega SMTP a Mailpit, reset de un solo uso y revocación del JWT anterior. La comprobación visual/interacción en teléfono o AVD continúa pendiente por ausencia de dispositivo conectado. Las fases 4–8 también están implementadas en código.
 
 Conectar E01–E06: registro de ambos tipos → Login; rol del servidor; restauración verificada; expiración; logout local; deep link de nueva contraseña y 204. Quitar acceso por cualquier password y mensajes simulados. Contraseña mínima 8, máxima 128, input protegido.
 
@@ -248,6 +248,8 @@ Conservar mensaje ante error/conflicto, identificar requisitos por UUID, refresc
 
 ### Fase 8. Limpieza de UI y aceptación completa
 
+**Implementada en código el 8 de octubre de 2026.** `VINCULACION_SOCIAL_Y_VALIDACION_V1.md` reúne el inventario E01–E26, recorridos automatizados y límites de la evidencia. Custom Tabs abre el proveedor, los retornos duplicados no reinician lecturas ni resultados, y Android nunca repite el callback. Los paneles usan nombres/totales globales reales; la cuenta empresarial muestra solo datos disponibles. Se conservan las 57 previews anteriores y hay diez adicionales. Solicitudes y UiStates quedan aislados por cuenta/vencimiento. La aceptación visual en teléfono/AVD y el permiso exitoso real de los proveedores continúan pendientes, sin ampliar las historias del backlog.
+
 - Eliminar botones “Ver credenciales inválidas”, “Simular autorización”, “Ver requisito incumplido”, “Ver duplicado”, “Ver seleccionada/rechazada” y otros toggles de negocio de pantallas conectadas.
 - Conservar navegación legítima por tabs, Volver y acciones de formulario. Se navega tras éxito cuando ese éxito es condición de la siguiente pantalla.
 - Home muestra nombres/datos disponibles; no anuncia postulantes, acuerdos, entregas o contadores ficticios. `total` de todas las campañas no se etiqueta “activas”; pendientes no se calculan de una sola página como total global.
@@ -280,6 +282,6 @@ Referencias principales del reporte:
 
 Evidencia backend: `AuthController`, `DatabaseAccessTokenProvider`, `BearerSessionFilter`, `UserProfileController`, `CampaignController`, `ApplicationController`, `CampaignSearchAdapter`, `CampaignPersistenceAdapter`, `SubmitApplicationCommandHandler`, `DatabaseAuthorizationStateStore`, `HttpSocialOAuthClient` y la migración V5 de postulaciones.
 
-Esta revisión contrastó las primeras 18 posiciones, las User Stories posteriores, las Technical/Spike Stories y las reglas DDD relevantes. No se modificó el README del reporte ni código funcional de backend/Android en esta solicitud: se preparó el plan final. Los tests existentes se inspeccionaron como evidencia; no se ejecutó el backend ni se verificaron proveedores externos.
+La revisión inicial del 6 de octubre contrastó las primeras 18 posiciones, las User Stories posteriores, las Technical/Spike Stories y las reglas DDD relevantes y produjo el plan, sin modificar entonces código funcional. Las solicitudes posteriores implementaron las fases 1–8. El README del reporte se conserva intacto; la evidencia actual de ejecución está en `VINCULACION_SOCIAL_Y_VALIDACION_V1.md` y las guías de cada fase.
 
-La implementación debe empezar por la fase 1 de este documento y avanzar con sus criterios de aceptación, sin ampliar la entrega a funcionalidades de las posiciones posteriores.
+Resta la aceptación visual en dispositivo y la autorización exitosa con credenciales reales de proveedores, sin ampliar la entrega a funcionalidades de las posiciones posteriores.

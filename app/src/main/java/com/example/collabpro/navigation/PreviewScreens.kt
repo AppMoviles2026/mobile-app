@@ -15,6 +15,7 @@ import java.util.UUID
 import com.example.collabpro.features.campaign.presentation.manage.*
 import com.example.collabpro.features.campaign.presentation.discovery.*
 import com.example.collabpro.features.campaign.presentation.applications.*
+import com.example.collabpro.features.campaign.presentation.dashboard.*
 import com.example.collabpro.features.campaign.application.applications.*
 import com.example.collabpro.features.campaign.domain.model.*
 import com.example.collabpro.features.campaign.application.discovery.DiscoveryFilters
@@ -69,13 +70,30 @@ import com.example.collabpro.ui.theme.CollabProTheme
 
 @Preview(name = "Panel de empresa", showBackground = true, showSystemUi = true)
 @Composable private fun BrandHomePreview() = preview {
-    HomeScreen(AppState().apply { selectRole(UserRole.BRAND) }, true)
+    HomeScreen(previewAccount(AccountType.BRAND), summary = { ActivityDashboardPanel(ActivityDashboardUiState(type = AccountType.BRAND, total = 3)) })
 }
 
 @Preview(name = "Panel de creador", showBackground = true, showSystemUi = true)
 @Composable private fun CreatorHomePreview() = preview {
-    HomeScreen(AppState().apply { selectRole(UserRole.CREATOR) }, false)
+    HomeScreen(previewAccount(AccountType.CREATOR), summary = { ActivityDashboardPanel(ActivityDashboardUiState(type = AccountType.CREATOR, total = 2)) }) {
+        CreatorOpportunitiesPanel(DiscoveryPageUiState(page = Page(listOf(previewCampaign.summary), 1, 0, 20)), Instant.parse("2030-01-01T00:00:00Z"))
+    }
 }
+
+@Preview(name = "Panel • Cargando", showBackground = true, showSystemUi = true)
+@Composable private fun HomeLoadingPreview() = preview { HomeScreen(previewAccount(AccountType.CREATOR), summary = { ActivityDashboardPanel(ActivityDashboardUiState(type = AccountType.CREATOR, loading = true)) }) }
+
+@Preview(name = "Panel • Sin actividad", showBackground = true, showSystemUi = true)
+@Composable private fun HomeEmptyPreview() = preview { HomeScreen(previewAccount(AccountType.BRAND), summary = { ActivityDashboardPanel(ActivityDashboardUiState(type = AccountType.BRAND, total = 0)) }) }
+
+@Preview(name = "Panel • Error de resumen", showBackground = true, showSystemUi = true)
+@Composable private fun HomeErrorPreview() = preview { HomeScreen(previewAccount(AccountType.CREATOR), summary = { ActivityDashboardPanel(ActivityDashboardUiState(type = AccountType.CREATOR, failure = ApiFailure(FailureKind.NETWORK, message = "No se pudo consultar el resumen."))) }) }
+
+@Preview(name = "Cuenta empresarial • Datos del servidor", showBackground = true, showSystemUi = true)
+@Composable private fun BrandAccountPreview() = preview { BrandAccountScreen(previewAccount(AccountType.BRAND)) }
+
+private fun previewAccount(type: AccountType) = Account(UUID.fromString("00000000-0000-0000-0000-000000000031"), UUID.fromString("00000000-0000-0000-0000-000000000032"),
+    if (type == AccountType.BRAND) "Empresa de ejemplo" else "Creadora de ejemplo", type, AccountStatus.ACTIVE)
 
 @Preview(name = "Perfil • Empresa", showBackground = true, showSystemUi = true)
 @Composable private fun BrandProfilePreview() = preview { BrandProfileScreen(AppState()) }
@@ -113,6 +131,34 @@ import com.example.collabpro.ui.theme.CollabProTheme
     LinkedSocialAccountsScreen(SocialAccountsUiState(link = SocialLinkUiState(
         UUID.fromString("00000000-0000-0000-0000-000000000016"), SocialPlatform.INSTAGRAM, checking = true)))
 }
+
+@Preview(name = "Redes • Cargando cuentas", showBackground = true, showSystemUi = true)
+@Composable private fun SocialLoadingPreview() = preview { LinkedSocialAccountsScreen(SocialAccountsUiState(loading = true)) }
+
+@Preview(name = "Redes • Error de conexión", showBackground = true, showSystemUi = true)
+@Composable private fun SocialNetworkErrorPreview() = preview { LinkedSocialAccountsScreen(SocialAccountsUiState(
+    failure = ApiFailure(FailureKind.NETWORK, message = "No se pudo consultar la lista de cuentas."))) }
+
+@Preview(name = "Redes • Proveedor sin configurar", showBackground = true, showSystemUi = true)
+@Composable private fun SocialNotConfiguredPreview() = preview { LinkedSocialAccountsScreen(SocialAccountsUiState(loaded = true,
+    failure = ApiFailure(FailureKind.SERVER, "PROVIDER_NOT_CONFIGURED", "Proveedor no disponible."))) }
+
+@Preview(name = "Redes • Autorización vencida", showBackground = true, showSystemUi = true)
+@Composable private fun SocialExpiredPreview() = preview { LinkedSocialAccountsScreen(SocialAccountsUiState(loaded = true,
+    link = SocialLinkUiState(previewSocialAttempt, SocialPlatform.INSTAGRAM, AuthorizationStatus.EXPIRED,
+        message = "La autorización venció. Inicia un nuevo intento."))) }
+
+@Preview(name = "Redes • Cuenta duplicada", showBackground = true, showSystemUi = true)
+@Composable private fun SocialDuplicatePreview() = preview { LinkedSocialAccountsScreen(SocialAccountsUiState(loaded = true,
+    link = SocialLinkUiState(previewSocialAttempt, SocialPlatform.TIKTOK, AuthorizationStatus.FAILED,
+        message = "Esta cuenta social ya está vinculada. No se creó un duplicado."))) }
+
+@Preview(name = "Redes • Navegador no disponible", showBackground = true, showSystemUi = true)
+@Composable private fun SocialBrowserUnavailablePreview() = preview { LinkedSocialAccountsScreen(SocialAccountsUiState(loaded = true,
+    link = SocialLinkUiState(previewSocialAttempt, SocialPlatform.INSTAGRAM,
+        failure = ApiFailure(FailureKind.CONFIGURATION, "BROWSER_UNAVAILABLE", "Instala o habilita un navegador compatible con Custom Tabs.")))) }
+
+private val previewSocialAttempt = UUID.fromString("00000000-0000-0000-0000-000000000033")
 
 @Preview(name = "Buscar campañas", showBackground = true, showSystemUi = true)
 @Composable private fun CampaignSearchPreview() = preview { CampaignExploreScreen(CampaignDiscoveryUiState(

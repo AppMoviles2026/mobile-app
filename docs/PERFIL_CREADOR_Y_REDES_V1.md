@@ -14,7 +14,7 @@ Implementado el 8 de octubre de 2026 dentro de **Identity**, para US-13 y US-14 
 | `GET /social-accounts/me` | Lista real de todas las cuentas, incluyendo múltiples cuentas por red y permisos revocados |
 | `GET /social-accounts/{platform}/callback` | Lo llama el navegador/proveedor al backend, **no Retrofit ni la app** |
 
-El perfil empresarial y los demás contextos mantienen sus pantallas de prototipo. Se quitaron los datos ficticios del formulario creador, la audiencia no editable y los botones de autorización simulada. Las previews ahora utilizan los mismos composables puros que el recorrido real, con fixtures únicamente en `PreviewScreens.kt`.
+La cuenta empresarial muestra nombre/tipo/estado reales en lectura desde la fase 8; su formulario completo permanece como preview para US-12. Los demás contextos futuros mantienen sus prototipos. Se quitaron los datos ficticios del formulario creador, la audiencia no editable y los botones de autorización simulada. Las previews utilizan los mismos composables puros que el recorrido real, con fixtures únicamente en `PreviewScreens.kt`.
 
 ## Separación DDD
 
@@ -34,7 +34,7 @@ Carga, guardado y reintentos tienen estados visibles y evitan solicitudes duplic
 ## Autorización y retorno
 
 1. Una sesión **CREATOR verificada** solicita una autorización al backend.
-2. Se abre la URL HTTPS de la red oficial correspondiente en el navegador externo. No se envía el JWT de CollabPro al navegador/proveedor.
+2. Se abre la URL HTTPS de la red oficial correspondiente en Custom Tabs de un navegador compatible (actualización de fase 8). No se envía el JWT de CollabPro al navegador/proveedor.
 3. Instagram/TikTok redirige al **callback HTTPS del backend**, que valida el estado y registra el resultado.
 4. Para `client=ANDROID`, el backend devuelve HTTP 303 a `collabpro://social-authorization-completed?authorizationId=UUID`.
 5. Android valida el esquema, host y único parámetro UUID; no acepta `state`, `code`, tokens, parámetros duplicados, rutas ajenas ni fragmentos. Consulta el intento con el JWT vigente. **Un enlace o un regreso del navegador jamás equivale a éxito.**
@@ -93,4 +93,4 @@ Un UUID inventado debe mostrar error, nunca vinculación. Verificar manualmente 
 
 Referencias Android: [deep links y pruebas con adb](https://developer.android.com/training/app-links/create-deeplinks), [límites de SavedStateHandle](https://developer.android.com/topic/libraries/architecture/viewmodel/viewmodel-savedstate), [coroutines y lifecycle](https://developer.android.com/topic/libraries/architecture/coroutines).
 
-Las fases 5–7 de campañas y postulaciones propias ya están implementadas en entregas posteriores; consulta `CAMPANAS_Y_CONDICIONES_V1.md`, `EXPLORACION_Y_DETALLE_V1.md` y `POSTULACIONES_PROPIAS_V1.md`. Sigue limpieza general y aceptación completa (fase 8).
+Las fases 5–8 ya están implementadas en entregas posteriores; consulta `CAMPANAS_Y_CONDICIONES_V1.md`, `EXPLORACION_Y_DETALLE_V1.md`, `POSTULACIONES_PROPIAS_V1.md` y `VINCULACION_SOCIAL_Y_VALIDACION_V1.md`. Esta última documenta Custom Tabs, deduplicación del retorno, paneles reales y validación acumulada; las cifras anteriores son evidencia histórica de la fase 4.

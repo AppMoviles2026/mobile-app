@@ -37,7 +37,7 @@ class BrandCampaignViewModel @Inject constructor(private val useCases: CampaignU
             if (owner != null) { cancelRequests(); owner = null; expiry = null; mutableUi.value = BrandCampaignUiState() }
         } else if (owner?.accountId != current.account.accountId || expiry != current.expiresAt) {
             cancelRequests(); owner = current.account; expiry = current.expiresAt
-            mutableUi.value = BrandCampaignUiState(ownerId = current.account.accountId)
+            mutableUi.value = BrandCampaignUiState(ownerId = current.account.accountId, expiresAt = current.expiresAt)
             val revision = generation
             editorJob = launchForOwner launch@ {
                 when (val loaded = drafts.load(current.account.accountId)) {
@@ -59,7 +59,8 @@ class BrandCampaignViewModel @Inject constructor(private val useCases: CampaignU
     private fun active(revision: Long = generation): Boolean {
         val session = authentication.state.value as? SessionState.Authenticated ?: return false
         return revision == generation && owner != null && session.account.accountId == owner?.accountId &&
-            session.account.accountType == AccountType.BRAND && session.expiresAt == expiry
+            session.account.accountType == AccountType.BRAND && session.account.status == AccountStatus.ACTIVE &&
+            session.expiresAt == expiry && session.expiresAt.isAfter(clock.instant())
     }
     private fun launchForOwner(block: suspend CoroutineScope.() -> Unit): Job =
         viewModelScope.launch(ExpectedAccount(owner!!.accountId, expiry!!), block = block)

@@ -4,9 +4,11 @@ import com.example.collabpro.core.domain.*
 import com.example.collabpro.core.infrastructure.di.NetworkModule
 import com.example.collabpro.core.infrastructure.network.*
 import com.example.collabpro.features.campaign.domain.model.*
+import com.example.collabpro.features.campaign.application.dashboard.LoadOwnActivityTotal
 import com.example.collabpro.features.campaign.infrastructure.*
 import com.example.collabpro.features.campaign.infrastructure.remote.*
 import com.example.collabpro.features.identity.application.auth.AuthenticationSession
+import com.example.collabpro.features.identity.application.auth.SessionState
 import com.example.collabpro.features.identity.domain.model.CreatorProfileUpdate
 import com.example.collabpro.features.identity.infrastructure.RemoteIdentityRepository
 import com.example.collabpro.features.identity.infrastructure.remote.IdentityApi
@@ -44,6 +46,7 @@ class RealOwnApplicationsIntegrationTest {
         val identity = RemoteIdentityRepository(retrofit.create(IdentityApi::class.java), executor)
         val campaigns = RemoteCampaignRepository(retrofit.create(CampaignApi::class.java), executor)
         val applications = RemoteApplicationRepository(retrofit.create(ApplicationApi::class.java), executor)
+        val totals = LoadOwnActivityTotal(campaigns, applications)
         val authentication = AuthenticationSession(identity, sessions, clock)
         fun <T> ApiResult<T>.success(): T {
             assertTrue("Expected success, got $this", this is ApiResult.Success)
@@ -58,6 +61,8 @@ class RealOwnApplicationsIntegrationTest {
         val otherEmail = "other-app-$token@example.test"; val password = "Applications-Only123!"
         identity.registerBrand("Empresa de prueba", brandEmail, password).success()
         authentication.signIn(brandEmail, password).success()
+        val brand = (authentication.state.value as SessionState.Authenticated).account
+        assertEquals(0L, totals.campaigns(brand.profileId).success())
         val campaignId = campaigns.create(NewCampaign("Campaña $token", "Colaborar", "Descripción", "Moda", "Adultos", "Lima"), IdempotencyKey()).success().summary.id
         val deadline = clock.instant().plus(1, ChronoUnit.DAYS).truncatedTo(ChronoUnit.SECONDS)
         val campaign = campaigns.saveConditions(campaignId, CampaignConditions(
@@ -67,6 +72,7 @@ class RealOwnApplicationsIntegrationTest {
             listOf(NewDeliverable("Video", "Mostrar producto", 1, deadline.plus(1, ChronoUnit.DAYS))), deadline,
             Compensation(CompensationType.PRODUCT, null, null, "Producto por contenido"))).success()
         campaigns.publish(campaignId).success()
+        assertEquals(1L, totals.campaigns(brand.profileId).success())
         assertEquals(FailureKind.FORBIDDEN, (applications.mine() as ApiResult.Failure).error.kind)
         authentication.signOut()
         identity.registerCreator("Creador de prueba", creatorEmail, password).success()
@@ -112,6 +118,7 @@ class RealOwnApplicationsIntegrationTest {
         assertEquals(ApplicationStatus.CANCELLED, cancelled.status); assertEquals(2L, cancelled.version)
         assertEquals(edited.message, cancelled.message); assertEquals(original.confirmedRequirementIds, cancelled.confirmedRequirementIds)
         assertEquals(cancelled, applications.mine().success().items.single())
+        assertEquals(1L, totals.applications(profile.profileId).success())
         applications.cancel(original.id, cancelled.version).code("APPLICATION_NOT_PENDING")
         applications.updateMessage(original.id, "Cambio terminal", cancelled.version).code("APPLICATION_NOT_PENDING")
         applications.submit(campaignId, "Volver a postular", setOf(manual), IdempotencyKey()).code("APPLICATION_ALREADY_EXISTS")

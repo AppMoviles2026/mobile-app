@@ -19,4 +19,4 @@ data class OwnedCampaignDetailUiState(val id: UUID? = null, val details: Campaig
     val loading: Boolean = false, val busy: Boolean = false, val failure: ApiFailure? = null, val notice: String? = null)
 data class BrandCampaignUiState(val editor: CampaignEditorUiState = CampaignEditorUiState(),
     val campaigns: OwnCampaignsUiState = OwnCampaignsUiState(), val detail: OwnedCampaignDetailUiState = OwnedCampaignDetailUiState(),
-    val navigate: CampaignView? = null, val ownerId: UUID? = null)
+    val navigate: CampaignView? = null, val ownerId: UUID? = null, val expiresAt: java.time.Instant? = null)

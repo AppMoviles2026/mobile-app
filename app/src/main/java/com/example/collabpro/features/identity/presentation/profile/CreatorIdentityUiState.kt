@@ -4,6 +4,7 @@ import com.example.collabpro.core.domain.ApiFailure
 import com.example.collabpro.features.identity.domain.model.*
 import java.net.URI
 import java.util.UUID
+import java.time.Instant
 
 data class ProfileDraft(
     val displayName: String = "", val biography: String = "", val niche: String = "",
@@ -39,10 +40,11 @@ data class SocialAccountsUiState(
 data class CreatorIdentityUiState(
     val profile: CreatorProfileUiState = CreatorProfileUiState(),
     val social: SocialAccountsUiState = SocialAccountsUiState(),
-    val showSocial: Boolean = false, val awaitingLogin: Boolean = false, val externalNotice: String? = null
+    val showSocial: Boolean = false, val awaitingLogin: Boolean = false, val externalNotice: String? = null,
+    val ownerId: UUID? = null, val expiresAt: Instant? = null
 )
 
 /** Transient browser request; OAuth URL (including provider state) is never saved or logged. */
-class OpenSocialBrowser(val owner: UUID, val authorizationId: UUID, val platform: SocialPlatform, val uri: URI) {
+class OpenSocialBrowser(val owner: UUID, val authorizationId: UUID, val platform: SocialPlatform, val uri: URI, val expiresAt: Instant) {
     override fun toString() = "OpenSocialBrowser(owner=$owner, authorizationId=$authorizationId, url=<redacted>)"
 }

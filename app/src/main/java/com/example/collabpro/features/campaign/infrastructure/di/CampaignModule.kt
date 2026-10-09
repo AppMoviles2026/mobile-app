@@ -18,6 +18,7 @@ import java.time.Clock
 import com.example.collabpro.features.campaign.application.drafts.*
 import com.example.collabpro.features.campaign.infrastructure.drafts.*
 import com.example.collabpro.features.campaign.application.applications.FindOwnApplication
+import com.example.collabpro.features.campaign.application.dashboard.LoadOwnActivityTotal
 
 @Module
 @InstallIn(SingletonComponent::class)
@@ -34,4 +35,5 @@ internal object CampaignModule {
     @Provides @Singleton fun campaignUseCases(repository: CampaignRepository) = CampaignUseCases(repository)
     @Provides @Singleton fun applicationUseCases(repository: ApplicationRepository) = ApplicationUseCases(repository)
     @Provides fun findOwnApplication(repository: ApplicationRepository) = FindOwnApplication(repository)
+    @Provides fun ownActivityTotal(campaigns: CampaignRepository, applications: ApplicationRepository) = LoadOwnActivityTotal(campaigns, applications)
 }

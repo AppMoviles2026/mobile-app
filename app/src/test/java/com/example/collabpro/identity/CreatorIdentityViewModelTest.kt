@@ -16,6 +16,7 @@ import org.junit.*
 import org.junit.Assert.*
 import java.net.URI
 import java.util.UUID
+import com.example.collabpro.core.application.security.ExpectedAccount
 
 internal class FakeCreatorIdentity(val auth: FakeIdentity = FakeIdentity()) : IdentityRepository by auth {
     val profile = CreatorProfile(AuthFixtures.account.profileId, "Nombre real", null, null, null, null)
@@ -47,17 +48,77 @@ class CreatorIdentityViewModelTest {
     @get:Rule val main = MainDispatcherRule()
     private val repository = FakeCreatorIdentity()
     private val sessions = MemorySessions()
-    private val authentication = AuthenticationSession(repository, sessions, MutableClock())
+    private val clock = MutableClock()
+    private val authentication = AuthenticationSession(repository, sessions, clock)
     private val saved = SavedStateHandle()
     private val owners = ViewModelStore()
     private lateinit var vm: CreatorIdentityViewModel
     @Before fun setup() {
-        vm = CreatorIdentityViewModel(IdentityUseCases(repository, sessions), authentication, saved)
+        vm = CreatorIdentityViewModel(IdentityUseCases(repository, sessions), authentication, saved, clock)
         owners.put("creator", vm)
     }
     @After fun cleanup() { owners.clear() }
     private suspend fun login() { authentication.signIn("test@example.test", "password123") }
     private fun callback(id: UUID = repository.attemptId) = "collabpro://social-authorization-completed?authorizationId=$id"
+
+    @Test fun `duplicate return preserves terminal state and reloads accounts only once`() = runTest(main.dispatcher) {
+        login(); runCurrent(); repository.statusResult = repository.status(AuthorizationStatus.SUCCEEDED)
+        vm.receiveAuthorizationReturn(callback()); runCurrent(); vm.receiveAuthorizationReturn(callback()); vm.onResume(); runCurrent()
+        assertEquals(1, repository.statusCount); assertEquals(1, repository.listCount)
+        assertEquals(AuthorizationStatus.SUCCEEDED, vm.ui.value.social.link!!.status)
+    }
+    @Test fun `duplicate delivery cannot cancel or restart an in flight status read`() = runTest(main.dispatcher) {
+        login(); runCurrent(); val result = CompletableDeferred<ApiResult<AuthorizationAttempt>>()
+        repository.statusCall = { result.await() }
+        vm.receiveAuthorizationReturn(callback()); runCurrent(); vm.receiveAuthorizationReturn(callback()); vm.onResume(); runCurrent()
+        assertEquals(1, repository.statusCount); assertTrue(vm.ui.value.social.link!!.checking)
+        result.complete(repository.status(AuthorizationStatus.SUCCEEDED)); runCurrent()
+        assertEquals(AuthorizationStatus.SUCCEEDED, vm.ui.value.social.link!!.status); assertEquals(1, repository.listCount)
+    }
+    @Test fun `failed read is retryable manually not by replaying the same deep link`() = runTest(main.dispatcher) {
+        login(); runCurrent(); repository.statusResult = AuthFixtures.failure(FailureKind.NETWORK)
+        vm.receiveAuthorizationReturn(callback()); runCurrent(); vm.receiveAuthorizationReturn(callback()); runCurrent()
+        assertEquals(1, repository.statusCount)
+        repository.statusResult = repository.status(AuthorizationStatus.SUCCEEDED); vm.checkAuthorization(); runCurrent()
+        assertEquals(2, repository.statusCount); assertEquals(AuthorizationStatus.SUCCEEDED, vm.ui.value.social.link!!.status)
+    }
+    @Test fun `protected profile and social requests retain the initiating account context`() = runTest(main.dispatcher) {
+        login(); runCurrent(); val contexts = mutableListOf<ExpectedAccount?>()
+        repository.profileCall = { contexts.add(currentCoroutineContext()[ExpectedAccount]); repository.profileResult }
+        repository.accountsCall = { contexts.add(currentCoroutineContext()[ExpectedAccount]); repository.accountsResult }
+        repository.authorizationCall = { contexts.add(currentCoroutineContext()[ExpectedAccount]); repository.authorizationResult }
+        repository.statusCall = { contexts.add(currentCoroutineContext()[ExpectedAccount]); repository.status(AuthorizationStatus.EXPIRED) }
+        vm.loadProfile(); vm.loadSocialAccounts(); runCurrent(); vm.startAuthorization(SocialPlatform.INSTAGRAM); runCurrent()
+        vm.checkAuthorization(); runCurrent()
+        assertTrue(contexts.size >= 4)
+        assertTrue(contexts.all { it?.accountId == AuthFixtures.account.accountId && it.expiresAt == AuthFixtures.session.expiresAt })
+        assertEquals(AuthFixtures.account.accountId, vm.ui.value.ownerId); assertEquals(AuthFixtures.session.expiresAt, vm.ui.value.expiresAt)
+    }
+    @Test fun `expired session cannot request or reopen social browser before observer clears it`() = runTest(main.dispatcher) {
+        login(); runCurrent(); val event = async { vm.browserEvents.first() }; vm.startAuthorization(SocialPlatform.INSTAGRAM); runCurrent()
+        val request = event.await(); clock.time = AuthFixtures.session.expiresAt
+        vm.loadSocialAccounts(); vm.checkAuthorization(); vm.loadProfile(); vm.startAuthorization(SocialPlatform.INSTAGRAM); runCurrent()
+        assertFalse(vm.canOpenBrowser(request)); assertEquals(0, repository.listCount); assertEquals(0, repository.statusCount); assertEquals(0, repository.profileCount)
+    }
+    @Test fun `old browser event cannot be used by a new login of the same account`() = runTest(main.dispatcher) {
+        login(); runCurrent(); val event = async { vm.browserEvents.first() }; vm.startAuthorization(SocialPlatform.INSTAGRAM); runCurrent()
+        val old = event.await(); authentication.signOut(); runCurrent()
+        repository.auth.loginResult = ApiResult.Success(AuthFixtures.session.copy(accessToken = "new.jwt.token", expiresAt = AuthFixtures.session.expiresAt.plusSeconds(30)))
+        login(); runCurrent(); vm.startAuthorization(SocialPlatform.INSTAGRAM); runCurrent()
+        assertFalse(vm.canOpenBrowser(old)); assertEquals(2, repository.startCount)
+    }
+    @Test fun `duplicate account UUIDs are rejected without rendering invalid lazy keys`() = runTest(main.dispatcher) {
+        login(); runCurrent(); val account = SocialAccount(UUID.randomUUID(), SocialPlatform.INSTAGRAM, "real", SocialAccountStatus.ACTIVE)
+        repository.accountsResult = ApiResult.Success(listOf(account, account)); vm.loadSocialAccounts(); runCurrent()
+        assertEquals(FailureKind.MALFORMED_RESPONSE, vm.ui.value.social.failure!!.kind)
+        assertFalse(vm.ui.value.social.loaded); assertTrue(vm.ui.value.social.accounts.isEmpty())
+    }
+    @Test fun `failed refresh retains last confirmed accounts and does not fabricate new ones`() = runTest(main.dispatcher) {
+        login(); runCurrent(); val account = SocialAccount(UUID.randomUUID(), SocialPlatform.TIKTOK, "real", SocialAccountStatus.ACTIVE)
+        repository.accountsResult = ApiResult.Success(listOf(account)); vm.loadSocialAccounts(); runCurrent()
+        repository.accountsResult = AuthFixtures.failure(FailureKind.NETWORK); vm.loadSocialAccounts(); runCurrent()
+        assertEquals(listOf(account), vm.ui.value.social.accounts); assertNotNull(vm.ui.value.social.failure)
+    }
 
     @Test fun `unverified and brand sessions never request creator data`() = runTest(main.dispatcher) {
         runCurrent(); vm.loadProfile(); vm.loadSocialAccounts(); vm.startAuthorization(SocialPlatform.INSTAGRAM)

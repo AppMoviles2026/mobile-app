@@ -37,15 +37,17 @@ class AppState(authenticatedAccount: Account? = null) {
         if (account.accountId == authenticatedAccount?.accountId && account.accountType == authenticatedAccount?.accountType)
             authenticatedAccount = account
     }
-    val campaigns: List<Campaign> = BrowseCampaigns(PreviewCampaigns)()
-    private val profiles = LoadProfiles(PreviewProfiles)
-    val brandProfile = profiles.brand()
-    val creatorProfile = profiles.creator()
-    val activeCollaboration = LoadActiveCollaboration(PreviewCollaborations)()
-    private val billing = LoadBillingPreview(PreviewBilling)
-    val samplePlan = billing.plan()
-    val sampleCompensation = billing.compensation()
-    val sampleMetrics = LoadResultsPreview(PreviewResults)()
+    // These fixtures are loaded only when a future prototype/preview asks for them.
+    // Connected routes use their server UiStates and never access these properties.
+    val campaigns: List<Campaign> by lazy { BrowseCampaigns(PreviewCampaigns)() }
+    private val profiles by lazy { LoadProfiles(PreviewProfiles) }
+    val brandProfile by lazy { profiles.brand() }
+    val creatorProfile by lazy { profiles.creator() }
+    val activeCollaboration by lazy { LoadActiveCollaboration(PreviewCollaborations)() }
+    private val billing by lazy { LoadBillingPreview(PreviewBilling) }
+    val samplePlan by lazy { billing.plan() }
+    val sampleCompensation by lazy { billing.compensation() }
+    val sampleMetrics by lazy { LoadResultsPreview(PreviewResults)() }
     var route by mutableStateOf(if (authenticatedAccount == null) Route.WELCOME else if (authenticatedAccount.accountType == AccountType.BRAND) Route.BRAND_HOME else Route.CREATOR_HOME)
         private set
     var role by mutableStateOf(if (authenticatedAccount?.accountType == AccountType.CREATOR) UserRole.CREATOR else UserRole.BRAND)

@@ -2,8 +2,7 @@ package com.example.collabpro
 
 import android.os.Bundle
 import android.content.Intent
-import android.content.ActivityNotFoundException
-import android.net.Uri
+import com.example.collabpro.features.identity.infrastructure.browser.SocialCustomTabs
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -13,6 +12,7 @@ import com.example.collabpro.features.identity.presentation.profile.CreatorIdent
 import com.example.collabpro.features.campaign.presentation.manage.BrandCampaignViewModel
 import com.example.collabpro.features.campaign.presentation.discovery.CampaignDiscoveryViewModel
 import com.example.collabpro.features.campaign.presentation.applications.OwnApplicationsViewModel
+import com.example.collabpro.features.campaign.presentation.dashboard.ActivityDashboardViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
@@ -28,23 +28,20 @@ class MainActivity : ComponentActivity() {
     private val brandCampaigns: BrandCampaignViewModel by viewModels()
     private val campaignDiscovery: CampaignDiscoveryViewModel by viewModels()
     private val ownApplications: OwnApplicationsViewModel by viewModels()
+    private val dashboard: ActivityDashboardViewModel by viewModels()
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         receiveIdentityLink(intent)
         lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
                 creatorIdentity.browserEvents.collect { event ->
-                    if (creatorIdentity.canOpenBrowser(event)) {
-                        try { startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(event.uri.toString())).addCategory(Intent.CATEGORY_BROWSABLE)) }
-                        catch (_: ActivityNotFoundException) { creatorIdentity.browserUnavailable(event) }
-                        catch (_: SecurityException) { creatorIdentity.browserUnavailable(event) }
-                    }
+                    if (creatorIdentity.canOpenBrowser(event) && !SocialCustomTabs.open(this@MainActivity, event.uri, event.platform)) creatorIdentity.browserUnavailable(event)
                 }
             }
         }
         enableEdgeToEdge()
         setContent {
-            CollabProTheme { CollabApp(authentication, creatorIdentity, brandCampaigns, campaignDiscovery, ownApplications) }
+            CollabProTheme { CollabApp(authentication, creatorIdentity, brandCampaigns, campaignDiscovery, ownApplications, dashboard) }
         }
     }
 
@@ -60,6 +57,7 @@ class MainActivity : ComponentActivity() {
         creatorIdentity.onResume()
         campaignDiscovery.onResume()
         ownApplications.onResume()
+        dashboard.onResume()
     }
 
     override fun onStop() {
