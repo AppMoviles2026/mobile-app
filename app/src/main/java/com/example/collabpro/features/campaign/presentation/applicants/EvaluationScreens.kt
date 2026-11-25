@@ -44,7 +44,7 @@ fun EvaluationListScreen(state: ApplicantEvaluationState, onPage: (Int) -> Unit,
 
 @Composable
 fun EvaluationDetailScreen(state: ApplicantEvaluationState, onRefresh: () -> Unit,
-    onDecide: (ApplicantDecision, String) -> Unit, onBack: () -> Unit) {
+    onDecide: (ApplicantDecision, String) -> Unit, onBack: () -> Unit, onAgreement: (UUID) -> Unit = {}) {
     val entry = state.candidate
     val application = entry?.application
     var decision by remember(application?.id) { mutableStateOf<ApplicantDecision?>(null) }
@@ -105,6 +105,8 @@ fun EvaluationDetailScreen(state: ApplicantEvaluationState, onRefresh: () -> Uni
                     }
                 }
             } }
+            if (application.status == ApplicationStatus.SELECTED)
+                item { Action("Proponer o consultar acuerdo", { onAgreement(application.id) }, enabled = !state.busy && !state.mustRefresh) }
             if (application.status == ApplicationStatus.PENDING) {
                 val enabled = !state.busy && !state.mustRefresh
                 item { Action("Seleccionar postulante", { openDecision(ApplicantDecision.SELECTED) }, enabled = enabled) }

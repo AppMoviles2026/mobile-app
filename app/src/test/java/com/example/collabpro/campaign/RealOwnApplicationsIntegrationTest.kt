@@ -4,6 +4,9 @@ import com.example.collabpro.core.domain.*
 import com.example.collabpro.core.infrastructure.di.NetworkModule
 import com.example.collabpro.core.infrastructure.network.*
 import com.example.collabpro.features.campaign.domain.model.*
+import com.example.collabpro.features.collaboration.domain.model.*
+import com.example.collabpro.features.collaboration.infrastructure.remote.CollaborationApi
+import com.example.collabpro.features.collaboration.infrastructure.remote.RemoteCollaborations
 import com.example.collabpro.features.campaign.application.dashboard.LoadOwnActivityTotal
 import com.example.collabpro.features.campaign.infrastructure.*
 import com.example.collabpro.features.campaign.infrastructure.remote.*
@@ -47,12 +50,9 @@ class RealOwnApplicationsIntegrationTest {
         val campaigns = RemoteCampaignRepository(retrofit.create(CampaignApi::class.java), executor)
         val applications = RemoteApplicationRepository(retrofit.create(ApplicationApi::class.java), executor)
         val evaluation = RemoteApplicantEvaluation(retrofit.create(ApplicantEvaluationApi::class.java), executor)
+        val collaborations = RemoteCollaborations(retrofit.create(CollaborationApi::class.java), executor)
         val totals = LoadOwnActivityTotal(campaigns, applications)
         val authentication = AuthenticationSession(identity, sessions, clock)
-        fun <T> ApiResult<T>.success(): T {
-            assertTrue("Expected success, got $this", this is ApiResult.Success)
-            return (this as ApiResult.Success).value
-        }
         fun <T> ApiResult<T>.code(expected: String) {
             assertTrue("Expected $expected, got $this", this is ApiResult.Failure)
             assertEquals(expected, (this as ApiResult.Failure).error.code)
@@ -132,6 +132,7 @@ class RealOwnApplicationsIntegrationTest {
         assertEquals(third.id, selected.application.id)
         assertEquals(ApplicationStatus.SELECTED, selected.application.status)
         assertEquals(1L, evaluation.list(campaignId, PageRequest(), ApplicationStatus.PENDING).success().total)
+        collaborationJourney(collaborations, authentication, clock, brandEmail, thirdEmail, password, third.id)
         authentication.signOut(); authentication.signIn(otherEmail, password).success()
         val rejected = applications.details(another.id).success()
         assertEquals("Otra propuesta encaja mejor", rejected.decisionReason)
@@ -159,5 +160,83 @@ class RealOwnApplicationsIntegrationTest {
         authentication.signOut()
         assertEquals(FailureKind.UNAUTHORIZED, (applications.mine() as ApiResult.Failure).error.kind)
         Unit
+    }
+
+    private suspend fun collaborationJourney(
+        collaborations: RemoteCollaborations, authentication: AuthenticationSession, clock: Clock,
+        brandEmail: String, thirdEmail: String, password: String, selectedApplication: UUID
+    ) {
+        val agreement = collaborations.proposeAgreement(ProposeAgreement(selectedApplication)).success()
+        assertEquals(agreement.id, collaborations.proposeAgreement(ProposeAgreement(selectedApplication)).success().id)
+        assertEquals(selectedApplication, agreement.snapshot.applicationId)
+        assertEquals(agreement.id, collaborations.agreements("PENDING", PageRequest()).success().items.single().id)
+        val acceptance = DecideAgreement(agreement.snapshot.termsVersion, AgreementDecision.ACCEPT)
+        assertNull(collaborations.decideAgreement(agreement.id, acceptance).success().collaborationId)
+
+        authentication.signOut(); authentication.signIn(thirdEmail, password).success()
+        val signed = collaborations.decideAgreement(agreement.id, acceptance).success()
+        val collaborationId = checkNotNull(signed.collaborationId)
+        assertEquals(collaborationId, collaborations.recoverCollaboration(RecoverCollaboration(agreement.id)).success().id)
+        val root = collaborations.collaboration(collaborationId).success()
+        assertEquals(collaborationId, collaborations.collaborations(CollaborationStatus.ACTIVE, PageRequest()).success().items.single().id)
+        val obligationId = root.deliverables.single().deliverableId
+        val raw = "%PDF-1.7\nEvidence test\n%%EOF".encodeToByteArray()
+        val uploadId = UUID.randomUUID()
+        val doc = UploadDocument("evidence.pdf", "application/pdf", raw)
+        val asset = collaborations.upload(collaborationId, uploadId, doc, false).success()
+        assertEquals(asset.id, collaborations.upload(collaborationId, uploadId, doc, false).success().id)
+        val content = DeliveryBody(ContentReference(url = "https://example.test/post"), listOf(ContentReference(assetId = asset.id)), null)
+        val request = SubmitDelivery(UUID.randomUUID(), obligationId, content)
+        val delivery = collaborations.submit(collaborationId, request).success()
+        assertEquals(delivery.id, collaborations.submit(collaborationId, request).success().id)
+        assertEquals(1L, collaborations.deliveries(collaborationId, "PENDING_VALIDATION", PageRequest()).success().total)
+
+        authentication.signOut(); authentication.signIn(brandEmail, password).success()
+        assertEquals("evidence.pdf", collaborations.asset(asset.id).success().filename)
+        assertArrayEquals(raw, collaborations.download(asset.id).success())
+        val correctionDeadline = clock.instant().plusSeconds(3600).truncatedTo(ChronoUnit.SECONDS)
+        val review = ReviewDelivery(UUID.randomUUID(), delivery.currentSubmission.id, delivery.version, "Agregar el mensaje acordado", correctionDeadline)
+        val rejectedDelivery = collaborations.reject(delivery.id, review).success()
+        val incidentEvidence = collaborations.upload(collaborationId, UUID.randomUUID(), doc, true).success()
+        val incident = collaborations.openIncident(collaborationId, OpenIncident(UUID.randomUUID(), IncidentCategory.DELIVERABLE,
+            "Acordar un plazo con el creador", delivery.id, listOf(ContentReference(assetId = incidentEvidence.id)))).success()
+        assertEquals(CollaborationStatus.DISPUTED, collaborations.collaboration(collaborationId).success().status)
+        val extension = ResolutionTerms(ResolutionOutcome.EXTEND_CORRECTION, "Acordamos un plazo más amplio", emptyList(),
+            delivery.id, rejectedDelivery.currentSubmission.id, rejectedDelivery.version, correctionDeadline.plusSeconds(3600))
+        val proposed = collaborations.proposeResolution(incident.id, ProposeResolution(UUID.randomUUID(), incident.version, extension)).success()
+        val proposalId = checkNotNull(proposed.currentResolution).id
+
+        authentication.signOut(); authentication.signIn(thirdEmail, password).success()
+        assertArrayEquals(raw, collaborations.download(incidentEvidence.id).success())
+        assertEquals(incident.id, collaborations.incidents(collaborationId, null, PageRequest()).success().items.single().id)
+        assertEquals(proposalId, collaborations.resolutions(incident.id, PageRequest()).success().items.single().id)
+        val activeIncident = collaborations.incident(incident.id).success()
+        val accepted = collaborations.decideResolution(incident.id, proposalId,
+            DecideResolution(UUID.randomUUID(), activeIncident.version, ResolutionDecision.ACCEPT, null)).success()
+        assertEquals("RESOLVED", accepted.status)
+        val toCorrect = collaborations.delivery(delivery.id).success()
+        assertEquals(extension.correctionDeadline, toCorrect.effectiveCorrectionDeadline)
+        val revision = collaborations.revise(delivery.id, ReviseDelivery(UUID.randomUUID(), toCorrect.version,
+            content.copy(notes = "Mensaje agregado"))).success()
+        assertEquals(2, revision.currentSubmission.revision)
+
+        authentication.signOut(); authentication.signIn(brandEmail, password).success()
+        val approved = collaborations.approve(delivery.id, ReviewDelivery(UUID.randomUUID(), revision.currentSubmission.id,
+            revision.version, null)).success()
+        assertEquals("APPROVED", approved.status)
+        val versions = collaborations.revisions(delivery.id, PageRequest()).success()
+        assertEquals(2L, versions.total)
+        assertEquals("REJECTED", versions.items.last().review?.decision)
+        assertTrue(versions.items.last().correctionExtensions.isNotEmpty())
+        val historical = collaborations.historyDetail(collaborationId).success()
+        assertEquals(CollaborationStatus.COMPLETED, historical.collaboration.status)
+        assertEquals(agreement.snapshot.termsVersion, historical.agreement.snapshot.termsVersion)
+        assertEquals(collaborationId, collaborations.history(CollaborationStatus.COMPLETED, PageRequest()).success().items.single().id)
+        assertTrue(collaborations.timeline(collaborationId, PageRequest()).success().items.isNotEmpty())
+    }
+
+    private fun <T> ApiResult<T>.success(): T {
+        assertTrue("Expected success, got $this", this is ApiResult.Success)
+        return (this as ApiResult.Success).value
     }
 }

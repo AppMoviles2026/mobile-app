@@ -2,7 +2,7 @@
 
 24 de noviembre de 2026 · Alcance propuesto para la app Android en Kotlin y Jetpack Compose, sobre el backend existente.
 
-El objetivo es cerrar el recorrido de ambas partes desde la evaluación de una postulación hasta la entrega revisada, la resolución de incidencias, la compensación, los resultados y el historial. Los nueve commits propuestos son del repositorio Android. El backend local ya ofrece los contratos necesarios para comenzar. Si el recorrido descubre un defecto del servidor, aislarlo en `platform` con su reproducción y corrección, sin mezclarlo con un commit de Android.
+El objetivo es cerrar el recorrido de ambas partes desde la evaluación de una postulación hasta la entrega revisada, la resolución de incidencias, la compensación, los resultados y el historial. Los siete commits propuestos son del repositorio Android. Los bloques 3, 4 y 5 se agrupan en un solo commit. El backend local ya ofrece los contratos necesarios para comenzar. Si el recorrido descubre un defecto del servidor, aislarlo en `platform` con su reproducción y corrección, sin mezclarlo con un commit de Android.
 
 ## Selección del sprint
 
@@ -50,15 +50,15 @@ Referencias de código: `app/src/main/java/com/example/collabpro/navigation/{Col
 | ---: | --- | --- | --- |
 | 1 | Identity | US-12 integrada. Regresión de identidad y autenticación de las rutas de perfil empresarial. | Sesión existente |
 | 2 | Campaign | US-20 integrada y edición de borradores/condiciones con versión | Campaign existente |
-| 3 | Collaboration | US-21 y US-22 pendientes | 2 |
-| 4 | Collaboration | US-23 pendiente + US-24 nueva | 3 |
-| 5 | Collaboration | US-25 y US-30 nuevas | 3 y 4 |
+| 3 | Collaboration | US-21 y US-22 integradas | 2 |
+| 4 | Collaboration | US-23 y US-24 integradas | 3 |
+| 5 | Collaboration | US-25 y US-30 integradas | 3 y 4 |
 | 6 | Billing | US-26 nueva y retorno financiero reutilizable | Sesión existente |
 | 7 | Billing | US-27 nueva | 6 |
 | 8 | Billing | US-28 nueva | 4, 5 y 6. La suscripción no es un requisito del pago. |
 | 9 | Performance | US-29 nueva | 3 y 4. Enlace histórico del bloque 5. |
 
-Los bloques 6–7 pueden avanzar en paralelo con Collaboration. Ejecutar los recorridos integrados al cerrar los bloques que los completan, sin reservar un commit para tareas de verificación aisladas.
+Los bloques 3–5 se entregan juntos como un único commit de Collaboration. Los bloques 6–7 pueden avanzar en paralelo con Collaboration. Ejecutar los recorridos integrados al cerrar los bloques que los completan, sin reservar un commit para tareas de verificación aisladas.
 
 ### 1. Identity · Perfil empresarial
 
@@ -94,27 +94,27 @@ git commit -m "feat(campaign): integrate applicant evaluation and campaign versi
 
 ### 3. Collaboration · Acuerdo y seguimiento
 
+**Estado (24 de noviembre de 2026):** integrado con los bloques 4 y 5. Colaborar abre colaboraciones, acuerdos e historial. El detalle de una postulación seleccionada permite proponer o retomar el acuerdo desde ambos roles.
+
 - **US-21:** crear o recuperar propuesta con `POST /agreements` para la postulación seleccionada, mostrar acuerdos propios y detalle. Mostrar snapshot, vigencia y firma de cada lado. Enviar `ACCEPT` o `REJECT` para el `termsVersion` leído. Abrir el `collaborationId` devuelto tras la segunda firma y recuperar su detalle mediante el contrato existente.
 - **US-22:** consultar `/collaborations/mine` y `/collaborations/{id}`; representar estado, obligaciones, cantidades, avance, fechas, vencimientos y acciones pendientes. Añadir navegación desde acuerdo y lista a un detalle parametrizado, con actualización al volver de una acción.
 - **Aceptación:** aprobación bilateral desde dos cuentas produce una sola colaboración, con las condiciones firmadas. Rechazo o vencimiento impiden activación. Ambas partes ven estado activo o vencido según el servidor y sus tareas correspondientes.
 - Contrato `platform/docs/collaboration-contracts.md`.
 
-```bash
-git commit -m "feat(collaboration): connect bilateral agreements and lifecycle screens"
-```
-
 ### 4. Collaboration · Entregas y revisión
+
+**Estado:** integrado. Android usa el selector de documentos para subir contenido/evidencia y guardar las descargas autenticadas en el destino elegido. Ante un resultado incierto, el ViewModel conserva el comando original y su clave para repetirlo durante la sesión. Se conserva la subida exitosa si falla la entrega mientras la preparación siga abierta.
 
 - **US-23:** conectar piezas por obligación, listado `/collaborations/{id}/deliverables`, detalle y subida de archivo a `/collaborations/{id}/assets`. Usar selector de documentos y metadatos/descarga autenticados de `/collaboration-assets/{id}`. Enviar evidencia y enlace o archivo según contrato. Conservar formulario y assetId si la carga funciona y el registro falla. Mostrar tardanza del servidor y cantidad de piezas pendientes.
 - **US-24:** empresa aprueba o rechaza la versión pendiente en `/deliverables/{id}/validation` o `/rejection`. Enviar `submissionId`, versión de pieza y clave. Rechazo requiere observaciones y nuevo plazo futuro. Creador consulta la revisión y corrige con `POST /deliverables/{id}/versions`; mostrar versiones y decisiones anteriores. Actualizar avance de la colaboración tras la revisión.
 - **Aceptación:** entrega puntual o tardía queda pendiente; la marca descarga su evidencia y aprueba o registra un rechazo; la corrección dentro de plazo genera otra versión pendiente y conserva la anterior. Revisiones obsoletas y archivos ajenos no se aplican.
 - Contrato `platform/docs/delivery-contracts.md`.
 
-```bash
-git commit -m "feat(collaboration): integrate deliverables reviews and corrections"
-```
-
 ### 5. Collaboration · Incidencias e historial
+
+**Estado:** integrado. El historial muestra los recursos asociados que informa la API. Las referencias de compensación y resultados se muestran como disponibilidad hasta integrar Billing y Performance.
+
+**Verificación de los bloques 3–5:** 293 pruebas de Gradle aprobadas con MySQL/Mailpit aislados, sin omisiones. La integración desde los adaptadores de Android recorrió aceptación de ambas partes, reintentos, adjuntos privados, rechazo, incidencia, ampliación bilateral, corrección, aprobación e historial. En el emulador se navegó con la cuenta de prueba desde Colaborar → Historial hasta la colaboración completada y su pieza aprobada en versión 2. Las pruebas instrumentadas compilaron. Las pruebas de dispositivo de los formularios y del selector de documentos quedan separadas del recorrido automatizado de la API.
 
 - **US-25:** incluir listado/detalle, formulario y evidencia privada con `/collaborations/{id}/incidents`, `/incidents/{id}` e `incident-assets`. Renderizar acciones permitidas por rol y estado. La ventana de apertura del servidor incluye siete días tras finalización/cancelación. Conectar propuestas y decisiones sobre la propuesta exacta, incluidas aceptación de contraparte, rechazo con motivo y retiro del proponente. Mostrar los resultados de conservar acuerdo, ampliar una corrección o cancelar cuando proceda. Mantener el bloqueo mientras corresponda, incluso con varias incidencias.
 - **US-30:** mover el historial funcional desde el prototipo de Performance. Consumir `/collaborations/history`, su detalle y `/collaborations/{id}/history`. Presentar participaciones paginadas, vacío por cuenta, snapshot histórico y cronología. Mostrar accesos a recursos asociados según referencias autorizadas y disponibilidad de los bloques que los conecten.
@@ -122,7 +122,7 @@ git commit -m "feat(collaboration): integrate deliverables reviews and correctio
 - Contrato `platform/docs/incident-history-contracts.md`.
 
 ```bash
-git commit -m "feat(collaboration): connect incidents and collaboration history"
+git commit -m "feat(collaboration): integrate agreements deliveries incidents and history"
 ```
 
 ### 6. Billing · Vinculación de medio financiero

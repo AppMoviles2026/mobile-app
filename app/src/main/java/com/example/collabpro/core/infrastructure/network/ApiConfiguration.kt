@@ -20,6 +20,10 @@ class ApiConfiguration(baseUrl: String, debug: Boolean) {
         val path = candidate.encodedPath.removePrefix(url.encodedPath)
         return path == "accounts/me" || path == "profiles/me/creator" || path == "profiles/me/brand" ||
             (path.startsWith("social-accounts/") && !path.endsWith("/callback")) ||
-            path == "campaigns" || path.startsWith("campaigns/") || path.startsWith("applications/")
+            path == "campaigns" || path.startsWith("campaigns/") || path.startsWith("applications/") ||
+            path == "agreements" || path.startsWith("agreements/") ||
+            path == "collaborations" || path.startsWith("collaborations/") ||
+            path.startsWith("deliverables/") || path.startsWith("incidents/") ||
+            path.startsWith("collaboration-assets/")
     }
 }

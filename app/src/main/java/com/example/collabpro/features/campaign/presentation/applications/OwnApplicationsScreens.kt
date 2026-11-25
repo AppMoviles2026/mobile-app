@@ -101,7 +101,8 @@ fun OwnApplicationFormScreen(state: OwnApplicationFormUiState, now: Instant, onM
 
 @Composable
 fun OwnApplicationDetailScreen(state: OwnApplicationDetailUiState, onEdit: () -> Unit = {}, onCancel: () -> Unit = {},
-    onVerify: () -> Unit = {}, onCampaign: (UUID) -> Unit = {}, onList: () -> Unit = {}, onBack: () -> Unit = {}) {
+    onVerify: () -> Unit = {}, onCampaign: (UUID) -> Unit = {}, onList: () -> Unit = {}, onBack: () -> Unit = {},
+    onAgreement: (UUID) -> Unit = {}) {
     // A refresh must not let an already-open confirmation cancel a newly loaded version.
     var confirmCancel by remember(state.id, state.application?.version, state.application?.status) { mutableStateOf(false) }
     if (confirmCancel) AlertDialog(onDismissRequest = { confirmCancel = false }, title = { Text("¿Cancelar esta postulación?") },
@@ -128,6 +129,9 @@ fun OwnApplicationDetailScreen(state: OwnApplicationDetailUiState, onEdit: () ->
                 item { Action("Editar propuesta", onEdit, enabled = !state.busy && !state.loading && !state.pendingOperation) }
                 item { Action("Cancelar postulación", { confirmCancel = true }, secondary = true, enabled = !state.busy && !state.loading && !state.pendingOperation) }
             } else item { Notice("El estado actual es de solo lectura. No se permite una segunda postulación a esta misma campaña.") }
+            if (application.status == ApplicationStatus.SELECTED) item {
+                Action("Proponer o consultar acuerdo", { onAgreement(application.id) }, enabled = !state.busy && !state.loading)
+            }
             item { Action("Ver condiciones de la campaña", { onCampaign(application.campaignId) }, secondary = true, enabled = !state.busy && !state.loading) }
         }
         if (state.pendingOperation) item { Notice("La última operación no está confirmada. Verifica antes de editar o cancelar de nuevo.") }

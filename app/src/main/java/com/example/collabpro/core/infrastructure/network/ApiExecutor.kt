@@ -61,6 +61,7 @@ class ApiExecutor(
             val response = call()
             if (credentials != null && !sessions.isCurrent(credentials)) {
                 response.errorBody()?.close()
+                (response.body() as? java.io.Closeable)?.close()
                 return@withContext failure(FailureKind.SESSION_CHANGED, "La sesión cambió; se descartó la respuesta anterior.")
             }
             if (response.isSuccessful) ApiResult.Success(map(response)) else {

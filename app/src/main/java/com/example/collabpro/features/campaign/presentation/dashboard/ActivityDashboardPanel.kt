@@ -16,7 +16,6 @@ fun ActivityDashboardPanel(state: ActivityDashboardUiState, onRefresh: () -> Uni
             InfoRow(if (state.type == AccountType.BRAND) "Total de campañas" else "Total de postulaciones", total.toString())
             Text(if (state.type == AccountType.BRAND) "Incluye borradores y campañas publicadas o cerradas." else "Incluye todos los estados, también las canceladas.")
         }
-        Text("Colaboraciones, entregables, pagos y métricas aún no tienen datos disponibles en esta versión.", style = MaterialTheme.typography.bodySmall)
         Action(if (state.failure == null) "Actualizar resumen" else "Reintentar resumen", onRefresh, secondary = true, enabled = !state.loading)
     }
 }
