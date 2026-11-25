@@ -26,6 +26,7 @@ import com.example.collabpro.features.identity.presentation.auth.*
 import com.example.collabpro.features.identity.application.auth.SessionState
 import com.example.collabpro.features.identity.presentation.profile.*
 import com.example.collabpro.features.campaign.presentation.manage.*
+import com.example.collabpro.features.campaign.presentation.applicants.*
 import com.example.collabpro.features.campaign.presentation.discovery.*
 import com.example.collabpro.features.campaign.presentation.applications.*
 import com.example.collabpro.features.campaign.presentation.dashboard.*
@@ -33,14 +34,14 @@ import com.example.collabpro.features.campaign.application.drafts.PreparationGoa
 import com.example.collabpro.features.performance.presentation.*
 
 @Composable
-fun CollabApp(authentication: AuthenticationViewModel, creatorIdentity: CreatorIdentityViewModel, brandCampaigns: BrandCampaignViewModel, campaignDiscovery: CampaignDiscoveryViewModel, ownApplications: OwnApplicationsViewModel, dashboard: ActivityDashboardViewModel, brandProfile: BrandProfileViewModel) {
+fun CollabApp(authentication: AuthenticationViewModel, creatorIdentity: CreatorIdentityViewModel, brandCampaigns: BrandCampaignViewModel, campaignDiscovery: CampaignDiscoveryViewModel, ownApplications: OwnApplicationsViewModel, dashboard: ActivityDashboardViewModel, brandProfile: BrandProfileViewModel, applicants: ApplicantEvaluationViewModel) {
     Surface(Modifier.fillMaxSize()) {
-        Box(Modifier.fillMaxSize().safeDrawingPadding()) { AuthenticationContent(authentication, creatorIdentity, brandCampaigns, campaignDiscovery, ownApplications, dashboard, brandProfile) }
+        Box(Modifier.fillMaxSize().safeDrawingPadding()) { AuthenticationContent(authentication, creatorIdentity, brandCampaigns, campaignDiscovery, ownApplications, dashboard, brandProfile, applicants) }
     }
 }
 
 @Composable
-private fun AuthenticationContent(authentication: AuthenticationViewModel, creatorIdentity: CreatorIdentityViewModel, brandCampaigns: BrandCampaignViewModel, campaignDiscovery: CampaignDiscoveryViewModel, ownApplications: OwnApplicationsViewModel, dashboard: ActivityDashboardViewModel, brandProfile: BrandProfileViewModel) {
+private fun AuthenticationContent(authentication: AuthenticationViewModel, creatorIdentity: CreatorIdentityViewModel, brandCampaigns: BrandCampaignViewModel, campaignDiscovery: CampaignDiscoveryViewModel, ownApplications: OwnApplicationsViewModel, dashboard: ActivityDashboardViewModel, brandProfile: BrandProfileViewModel, applicants: ApplicantEvaluationViewModel) {
     val session by authentication.session.collectAsStateWithLifecycle()
     val ui by authentication.ui.collectAsStateWithLifecycle()
     val identityUi by creatorIdentity.ui.collectAsStateWithLifecycle()
@@ -77,7 +78,7 @@ private fun AuthenticationContent(authentication: AuthenticationViewModel, creat
                 campaignUi.takeIf { it.ownerId == current.account.accountId && it.expiresAt == current.expiresAt } ?: BrandCampaignUiState(), campaignDiscovery,
                 discoveryUi.takeIf { it.ownerId == current.account.accountId && it.expiresAt == current.expiresAt } ?: CampaignDiscoveryUiState(), ownApplications,
                 applicationsUi.takeIf { it.ownerId == current.account.accountId && it.expiresAt == current.expiresAt } ?: OwnApplicationsUiState(), dashboard,
-                dashboardUi.takeIf { it.ownerId == current.account.accountId && it.expiresAt == current.expiresAt } ?: ActivityDashboardUiState(), brandProfile, current)
+                dashboardUi.takeIf { it.ownerId == current.account.accountId && it.expiresAt == current.expiresAt } ?: ActivityDashboardUiState(), brandProfile, current, applicants)
         }
     }
 }
@@ -122,8 +123,14 @@ private fun PrivateRoutes(app: AppState, onSignOut: () -> Unit, creatorIdentity:
     campaignDiscovery: CampaignDiscoveryViewModel, discoveryUi: CampaignDiscoveryUiState,
     ownApplications: OwnApplicationsViewModel, applicationsUi: OwnApplicationsUiState,
     dashboard: ActivityDashboardViewModel, dashboardUi: ActivityDashboardUiState,
-    brandProfile: BrandProfileViewModel, session: SessionState.Authenticated) {
+    brandProfile: BrandProfileViewModel, session: SessionState.Authenticated, applicants: ApplicantEvaluationViewModel) {
     val account = app.authenticatedAccount ?: return
+    val applicantState by applicants.ui.collectAsStateWithLifecycle()
+    val evaluation = applicantState.takeIf { it.ownerId == account.accountId && it.expiry == session.expiresAt }
+        ?: ApplicantEvaluationState()
+    LaunchedEffect(app.route, evaluation.candidate?.application?.version) {
+        if (app.route == Route.APPLICANTS && app.role == UserRole.BRAND) applicants.refreshList()
+    }
     DisposableEffect(dashboard) { onDispose { dashboard.onShown(false) } }
     LaunchedEffect(app.route, dashboardUi.ownerId, dashboardUi.expiresAt) {
         dashboard.onShown(app.route in listOf(Route.BRAND_HOME, Route.CREATOR_HOME))
@@ -196,7 +203,7 @@ private fun PrivateRoutes(app: AppState, onSignOut: () -> Unit, creatorIdentity:
                 TextButton(onClick = onSignOut) { Text("Cerrar sesión") }
             }
             identityUi.externalNotice?.let { Text(it, Modifier.padding(horizontal = 16.dp), style = MaterialTheme.typography.labelSmall) }
-            val connectedCampaign = (app.role == UserRole.BRAND && app.route in listOf(Route.BRAND_CAMPAIGNS, Route.CAMPAIGN_FORM, Route.CAMPAIGN_TERMS, Route.CAMPAIGN_DETAIL)) ||
+            val connectedCampaign = (app.role == UserRole.BRAND && app.route in listOf(Route.BRAND_CAMPAIGNS, Route.CAMPAIGN_FORM, Route.CAMPAIGN_TERMS, Route.CAMPAIGN_DETAIL, Route.APPLICANTS, Route.APPLICANT_DETAIL)) ||
                 (app.role == UserRole.CREATOR && app.route in listOf(Route.CAMPAIGN_SEARCH, Route.CAMPAIGN_DETAIL, Route.APPLICATION_FORM, Route.MY_APPLICATIONS, Route.APPLICATION_DETAIL))
             if (app.route != home && !connectedCampaign && app.route !in listOf(Route.BRAND_PROFILE, Route.CREATOR_PROFILE, Route.SOCIAL_ACCOUNTS)) Text("PROTOTIPO • datos de ejemplo, no provienen del servidor", Modifier.padding(horizontal = 16.dp, vertical = 4.dp), style = MaterialTheme.typography.labelSmall)
         }
@@ -230,7 +237,8 @@ private fun PrivateRoutes(app: AppState, onSignOut: () -> Unit, creatorIdentity:
                     campaignDiscovery::nextPage, campaignDiscovery::previousPage, campaignDiscovery::openDetails, app::back)
                 Route.CAMPAIGN_DETAIL -> if (app.role == UserRole.BRAND) OwnedCampaignDetailScreen(campaignUi.detail,
                     onRetry = { campaignUi.detail.id?.let(brandCampaigns::openDetails) }, onEdit = brandCampaigns::editSelected,
-                    onDiscard = { brandCampaigns.discardOrClose(true) }, onClose = { brandCampaigns.discardOrClose(false) }, onBack = app::back)
+                    onDiscard = { brandCampaigns.discardOrClose(true) }, onClose = { brandCampaigns.discardOrClose(false) }, onBack = app::back,
+                    onApplicants = { campaignUi.detail.details?.let { if (applicants.openCampaign(it)) app.go(Route.APPLICANTS) } })
                     else CreatorCampaignDetailScreen(discoveryUi.detail, discoveryUi.now,
                         onRefresh = { campaignDiscovery.refreshDetail(force = true) }, onBack = app::back,
                         onProposal = ownApplications::beginProposal, onApplications = { app.go(Route.MY_APPLICATIONS) })
@@ -244,14 +252,16 @@ private fun PrivateRoutes(app: AppState, onSignOut: () -> Unit, creatorIdentity:
                 Route.BRAND_CAMPAIGNS -> OwnCampaignsScreen(campaignUi.campaigns, campaignUi.editor, brandCampaigns::openEditor,
                     brandCampaigns::newDraft, brandCampaigns::openDetails, brandCampaigns::loadCampaigns, app::back)
                 Route.CAMPAIGN_FORM -> CampaignBasicsScreen(campaignUi.editor, brandCampaigns::editBasics, brandCampaigns::continueToConditions,
-                    onSave = { brandCampaigns.prepare(PreparationGoal.BASIC_DRAFT) }, onCheck = brandCampaigns::checkServer, onBack = app::back)
+                    onSave = { brandCampaigns.prepare(PreparationGoal.BASIC_DRAFT) }, onCheck = brandCampaigns::checkServer, onBack = app::back, onReload = brandCampaigns::reloadEditor)
                 Route.CAMPAIGN_TERMS -> CampaignConditionsScreen(campaignUi.editor, brandCampaigns::editConditions,
                     brandCampaigns::addRequirement, brandCampaigns::addDeliverable,
                     onSave = { brandCampaigns.prepare(PreparationGoal.CONDITIONS) }, onPublish = { brandCampaigns.prepare(PreparationGoal.PUBLICATION) },
                     onCheck = brandCampaigns::checkServer, onReload = brandCampaigns::reloadEditor,
                     onList = { app.go(Route.BRAND_CAMPAIGNS) }, onBack = brandCampaigns::backToBasics)
-                Route.APPLICANTS -> ApplicantsScreen(app)
-                Route.APPLICANT_DETAIL -> ApplicantDetailScreen(app)
+                Route.APPLICANTS -> EvaluationListScreen(evaluation, applicants::loadPage, applicants::filter,
+                    onOpen = { if (applicants.openApplicant(it)) app.go(Route.APPLICANT_DETAIL) }, onBack = app::back)
+                Route.APPLICANT_DETAIL -> EvaluationDetailScreen(evaluation, applicants::refreshDetail,
+                    applicants::decide, app::back)
                 Route.AGREEMENT -> AgreementScreen(app)
                 Route.COLLABORATIONS -> CollaborationsScreen(app)
                 Route.COLLABORATION_DETAIL -> CollaborationDetailScreen(app)

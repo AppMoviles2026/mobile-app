@@ -30,6 +30,25 @@ class CampaignPreparationTest {
         assertTrue(execute(PreparationGoal.BASIC_DRAFT) is ApiResult.Success)
         assertEquals(listOf("create", "details"), repository.events); assertEquals(CampaignStatus.DRAFT, repository.records.values.single().summary.status)
     }
+    @Test fun `editing a saved draft reuses UUID and protects another editor's changes`() = runTest {
+        assertTrue(execute(PreparationGoal.BASIC_DRAFT) is ApiResult.Success)
+        val id = saved.serverId!!
+        saved = saved.copy(basics = saved.basics.copy(title = "Título editado", description = ""))
+        assertTrue(execute(PreparationGoal.BASIC_DRAFT) is ApiResult.Success)
+        assertEquals(id, saved.serverId)
+        assertEquals(1L, saved.serverVersion)
+        assertNull(repository.records.getValue(id).description)
+        repository.records[id] = repository.records.getValue(id).let {
+            it.copy(summary = it.summary.copy(title = "Edición remota"), version = 2)
+        }
+        saved = saved.copy(basics = saved.basics.copy(title = "Edición local"))
+        assertEquals("CONCURRENT_UPDATE", (execute() as ApiResult.Failure).error.code)
+        assertEquals("Edición local", saved.basics.title)
+        assertEquals("Edición remota", repository.records.getValue(id).summary.title)
+        assertEquals(1, repository.events.count { it == "metadata" })
+        assertFalse(repository.events.contains("conditions"))
+    }
+
     @Test fun `invalid metadata cannot create remote resources`() = runTest {
         saved = saved.copy(basics = saved.basics.copy(title = ""))
         assertTrue(execute() is ApiResult.Failure); assertTrue(repository.events.isEmpty())

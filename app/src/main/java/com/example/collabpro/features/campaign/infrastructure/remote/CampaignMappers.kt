@@ -15,7 +15,7 @@ internal fun CampaignDto.toDetails() = CampaignDetails(toSummary(), objective.re
     requirements.required("requirements").map { item -> Requirement(item.id.uuid("id"), item.description.required("description"),
         item.mandatory.required("mandatory"), item.ruleType.enum("ruleType"), item.expectedValue) },
     deliverables.required("deliverables").map { item -> DeliverableSpec(item.id.uuid("id"), item.contentType.required("contentType"),
-        item.description.required("description"), item.quantity.required("quantity"), item.deadline.required("deadline")) })
+        item.description.required("description"), item.quantity.required("quantity"), item.deadline.required("deadline")) }, version?.also { if (it < 0) throw InvalidApiResponse("Invalid campaign version") })
 internal fun ApplicationDto.toDomain(): Application {
     val version = version.required("version")
     if (version < 0) throw InvalidApiResponse("Invalid application version")
@@ -24,7 +24,8 @@ internal fun ApplicationDto.toDomain(): Application {
         // V1 MySQL DATETIME(6): POST/cache may carry nanos that subsequent GET cannot retain.
         // Canonicalize at the adapter boundary so identical persisted snapshots compare equally.
         status.enum("status"), submittedAt.required("submittedAt").plusNanos(500).truncatedTo(ChronoUnit.MICROS),
-        confirmedRequirementIds.required("confirmedRequirementIds").map { it.uuid("confirmedRequirementId") }.toSet(), version)
+        confirmedRequirementIds.required("confirmedRequirementIds").map { it.uuid("confirmedRequirementId") }.toSet(), version,
+        decidedAt, decidedBy?.uuid("decidedBy"), decisionReason)
 }
 internal fun <D, T> PageDto<D>.toDomain(map: (D) -> T): Page<T> {
     val page = page.required("page")
@@ -37,4 +38,4 @@ internal fun <D, T> PageDto<D>.toDomain(map: (D) -> T): Page<T> {
 internal fun NewCampaign.toDto() = CreateCampaignDto(title, objective, description, category, targetAudience, location)
 internal fun CampaignConditions.toDto() = ConditionsDto(
     requirements.map { NewRequirementDto(it.description, it.mandatory, it.ruleType.name, it.expectedValue) },
-    deliverables.map { NewDeliverableDto(it.contentType, it.description, it.quantity, it.deadline) }, applicationDeadline, compensation.toDto())
+    deliverables.map { NewDeliverableDto(it.contentType, it.description, it.quantity, it.deadline) }, applicationDeadline, compensation.toDto(), expectedVersion)

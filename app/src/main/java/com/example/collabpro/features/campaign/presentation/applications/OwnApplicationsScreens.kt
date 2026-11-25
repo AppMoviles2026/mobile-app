@@ -111,7 +111,14 @@ fun OwnApplicationDetailScreen(state: OwnApplicationDetailUiState, onEdit: () ->
         if (state.loading || state.busy) item { LinearProgressIndicator(Modifier.fillMaxWidth()); Text("Consultando o procesando postulación…") }
         state.failure?.let { item { ApplicationError(it) } }; state.notice?.let { item { Notice(it) } }
         state.application?.let { application ->
-            item { Panel(application.campaignTitle) { Text(application.brandName); Status(application.status.label()); InfoRow("Enviada", application.submittedAt.toString()); InfoRow("Versión", application.version.toString()) } }
+            item { Panel(application.campaignTitle) {
+                Text(application.brandName)
+                Status(application.status.label())
+                InfoRow("Enviada", application.submittedAt.toString())
+                application.decidedAt?.let { InfoRow("Decisión", it.toString()) }
+                application.decisionReason?.let { InfoRow("Motivo", it) }
+                InfoRow("Versión", application.version.toString())
+            } }
             item { Panel("Propuesta enviada") { Text(application.message) } }
             item { Panel("Confirmaciones manuales originales") {
                 if (application.confirmedRequirementIds.isEmpty()) Text("Sin confirmaciones manuales.")
@@ -131,4 +138,4 @@ fun OwnApplicationDetailScreen(state: OwnApplicationDetailUiState, onEdit: () ->
 @Composable private fun ApplicationError(error: ApiFailure) {
     Surface(color = MaterialTheme.colorScheme.errorContainer) { Text(error.message, Modifier.fillMaxWidth().padding(14.dp), color = MaterialTheme.colorScheme.onErrorContainer) }
 }
-private fun ApplicationStatus.label() = when (this) { ApplicationStatus.PENDING -> "Pendiente"; ApplicationStatus.SELECTED -> "Seleccionada"; ApplicationStatus.REJECTED -> "Rechazada"; ApplicationStatus.CANCELLED -> "Cancelada" }
+internal fun ApplicationStatus.label() = when (this) { ApplicationStatus.PENDING -> "Pendiente"; ApplicationStatus.SELECTED -> "Seleccionada"; ApplicationStatus.REJECTED -> "Rechazada"; ApplicationStatus.CANCELLED -> "Cancelada" }

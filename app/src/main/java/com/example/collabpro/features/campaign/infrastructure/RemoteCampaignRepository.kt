@@ -10,6 +10,13 @@ import java.util.UUID
 internal class RemoteCampaignRepository(private val api: CampaignApi, private val executor: ApiExecutor) : CampaignRepository {
     override suspend fun create(campaign: NewCampaign, key: IdempotencyKey) =
         executor.protectedCall({ api.create(it, key.value.toString(), campaign.toDto()) }) { it.toDetails() }
+    override suspend fun updateDraft(id: UUID, campaign: NewCampaign, expectedVersion: Long) =
+        executor.protectedCall({ session ->
+            api.updateDraft(session, id.toString(), PatchCampaignDto(
+                campaign.title, campaign.objective, campaign.description.orEmpty(), campaign.category,
+                campaign.targetAudience, campaign.location.orEmpty(), expectedVersion
+            ))
+        }) { it.toDetails() }
     override suspend fun saveConditions(id: UUID, conditions: CampaignConditions) =
         executor.protectedCall({ api.conditions(it, id.toString(), conditions.toDto()) }) { it.toDetails() }
     override suspend fun publish(id: UUID) = executor.protectedCall({ api.publish(it, id.toString()) }) { it.toDetails() }

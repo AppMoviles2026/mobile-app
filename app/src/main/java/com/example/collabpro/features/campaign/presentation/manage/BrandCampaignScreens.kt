@@ -47,12 +47,15 @@ fun OwnCampaignsScreen(state: OwnCampaignsUiState, editor: CampaignEditorUiState
 
 @Composable
 fun CampaignBasicsScreen(state: CampaignEditorUiState, onEdit: (CampaignBasics.() -> CampaignBasics) -> Unit = {},
-    onContinue: () -> Unit = {}, onSave: () -> Unit = {}, onCheck: () -> Unit = {}, onBack: () -> Unit = {}) {
+    onContinue: () -> Unit = {}, onSave: () -> Unit = {}, onCheck: () -> Unit = {}, onBack: () -> Unit = {}, onReload: () -> Unit = {}) {
+    var confirmReload by remember { mutableStateOf(false) }
+    if (confirmReload) Confirmation("¿Reemplazar la edición local?", "Se cargará el borrador vigente del servidor.",
+        { confirmReload = false; onReload() }, { confirmReload = false })
     val draft = state.draft
     val enabled = !state.metadataLocked && !state.busy && !state.restoring
-    Page("Preparar campaña", eyebrow = "PASO 1 DE 2", subtitle = "Continuar solo cambia de paso. Guardar borrador lo crea en el servidor.", onBack = onBack) {
+    Page("Preparar campaña", eyebrow = "PASO 1 DE 2", subtitle = "Guarda los datos básicos de la campaña o continúa a sus condiciones.", onBack = onBack) {
         item { EditorFeedback(state) }
-        if (state.metadataLocked) item { Notice("Los metadatos están bloqueados porque la campaña existe o su creación aún no está confirmada. Puedes completar condiciones; no hay edición de metadatos en esta versión.") }
+        if (state.metadataLocked) item { Notice("Comprueba el estado del borrador antes de cambiar sus datos básicos.") }
         draft?.basics?.let { body ->
             item { CampaignField("Título", body.title, "title", state.failure, enabled, 200) { value -> onEdit { copy(title = value) } } }
             item { CampaignField("Objetivo", body.objective, "objective", state.failure, enabled, 2000, true) { value -> onEdit { copy(objective = value) } } }
@@ -62,7 +65,10 @@ fun CampaignBasicsScreen(state: CampaignEditorUiState, onEdit: (CampaignBasics.(
             item { CampaignField("Ubicación (opcional)", body.location, "location", state.failure, enabled, 150) { value -> onEdit { copy(location = value) } } }
             item { Action("Continuar a condiciones", onContinue, enabled = !state.busy && !state.restoring) }
             item { Action(if (state.busy) "Procesando…" else "Guardar borrador", onSave, secondary = true, enabled = !state.busy && !state.readOnly && !state.restoring) }
-            if (draft.serverId != null) item { Action("Comprobar estado en el servidor", onCheck, secondary = true, enabled = !state.busy) }
+            if (draft.serverId != null) {
+                item { Action("Comprobar estado en el servidor", onCheck, secondary = true, enabled = !state.busy) }
+                item { Action("Cargar borrador del servidor", { confirmReload = true }, secondary = true, enabled = !state.busy) }
+            }
         }
     }
 }
@@ -126,7 +132,7 @@ fun CampaignConditionsScreen(state: CampaignEditorUiState, onEdit: (ConditionsDr
 
 @Composable
 fun OwnedCampaignDetailScreen(state: OwnedCampaignDetailUiState, onRetry: () -> Unit = {}, onEdit: () -> Unit = {},
-    onDiscard: () -> Unit = {}, onClose: () -> Unit = {}, onBack: () -> Unit = {}) {
+    onDiscard: () -> Unit = {}, onClose: () -> Unit = {}, onBack: () -> Unit = {}, onApplicants: () -> Unit = {}) {
     var confirm by remember { mutableStateOf("") }
     if (confirm.isNotBlank()) Confirmation(if (confirm == "discard") "¿Eliminar este borrador?" else if (confirm == "edit") "¿Retomar este borrador?" else "¿Cerrar postulaciones?",
         if (confirm == "discard") "Se eliminará permanentemente del servidor. Solo está permitido para borradores."
@@ -138,6 +144,8 @@ fun OwnedCampaignDetailScreen(state: OwnedCampaignDetailUiState, onRetry: () -> 
         state.failure?.let { item { CampaignError(it) } }; state.notice?.let { item { Notice(it) } }
         state.details?.let { details ->
             item { Status(details.summary.status.label()) }
+            if (details.summary.status != CampaignStatus.DRAFT)
+                item { Action("Ver postulaciones", onApplicants, enabled = !state.busy && !state.loading) }
             item { Panel("Información") { Text(details.objective); details.description?.let { Text(it) }; InfoRow("Categoría", details.summary.category); InfoRow("Audiencia", details.targetAudience); InfoRow("Ubicación", details.summary.location ?: "No indicada") } }
             item { Panel("Fechas y oferta") {
                 Text("Cierre de postulaciones: ${details.summary.applicationDeadline ?: "Sin definir"}")

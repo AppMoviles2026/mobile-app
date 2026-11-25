@@ -20,11 +20,11 @@ data class ConditionsDraft(val requirements: List<RequirementDraft> = listOf(Req
     val deliverables: List<DeliverableDraft> = listOf(DeliverableDraft()), val applicationDeadline: String = "",
     val compensationType: CompensationType = CompensationType.CASH, val amount: String = "", val currency: String = "",
     val compensationDescription: String = "", val zoneId: String = ZoneId.systemDefault().id)
-enum class DraftOperation { CREATE, CONDITIONS, PUBLISH, DISCARD, CLOSE }
+enum class DraftOperation { CREATE, METADATA, CONDITIONS, PUBLISH, DISCARD, CLOSE }
 data class CreationIntent(val request: NewCampaign, val key: IdempotencyKey, val startedAt: Instant)
 data class CampaignDraft(val basics: CampaignBasics = CampaignBasics(), val conditions: ConditionsDraft = ConditionsDraft(),
     val serverId: UUID? = null, val creation: CreationIntent? = null, val pending: DraftOperation? = null,
-    val conditionsSaved: Boolean = false, val step: Int = 1)
+    val conditionsSaved: Boolean = false, val step: Int = 1, val serverVersion: Long? = null)
 
 interface CampaignDraftStore {
     suspend fun load(owner: UUID): ApiResult<CampaignDraft?>
@@ -116,8 +116,12 @@ fun CampaignDetails.toDraft(zone: String = ZoneId.systemDefault().id): CampaignD
             applicationDeadline = summary.applicationDeadline?.let { CampaignDates.display(it, zone) }.orEmpty(),
             compensationType = offer?.type ?: CompensationType.CASH, amount = offer?.amount?.toPlainString().orEmpty(),
             currency = offer?.currency.orEmpty(), compensationDescription = offer?.description.orEmpty(), zoneId = zone),
-        serverId = summary.id, conditionsSaved = offer != null && requirements.isNotEmpty() && deliverables.isNotEmpty(), step = 2)
+        serverId = summary.id, conditionsSaved = offer != null && requirements.isNotEmpty() && deliverables.isNotEmpty(), step = 2, serverVersion = version)
 }
+
+internal fun CampaignDetails.matchesBasics(basics: NewCampaign): Boolean =
+    summary.title == basics.title && objective == basics.objective && description == basics.description &&
+        summary.category == basics.category && targetAudience == basics.targetAudience && summary.location == basics.location
 
 fun CampaignDetails.matches(conditions: CampaignConditions): Boolean = summary.applicationDeadline == conditions.applicationDeadline &&
     summary.compensation?.let { it.type == conditions.compensation.type && it.currency == conditions.compensation.currency &&

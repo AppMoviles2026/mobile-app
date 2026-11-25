@@ -22,12 +22,12 @@ class ArchitectureTest {
         assertTrue(modules.size >= 3)
         for (file in modules) assertFalse("Preview binding in $file", file.readText().contains("Preview"))
     }
-    @Test fun `retrofit contains exactly the twenty seven mobile initiated operations`() {
-        val httpAnnotations = setOf(GET::class.java, POST::class.java, PUT::class.java, DELETE::class.java)
-        val methods = listOf(IdentityApi::class.java, CampaignApi::class.java, ApplicationApi::class.java)
+    @Test fun `retrofit contains exactly the thirty one mobile initiated operations`() {
+        val httpAnnotations = setOf(GET::class.java, POST::class.java, PUT::class.java, PATCH::class.java, DELETE::class.java)
+        val methods = listOf(IdentityApi::class.java, CampaignApi::class.java, ApplicationApi::class.java, ApplicantEvaluationApi::class.java)
             .flatMap { it.declaredMethods.toList() }
             .filter { method -> method.annotations.any { it.annotationClass.java in httpAnnotations } }
-        assertEquals(27, methods.size)
+        assertEquals(31, methods.size)
         assertFalse(methods.any { it.name == "callback" })
     }
     @Test fun `future bounded contexts remain prototype only`() {
@@ -40,7 +40,7 @@ class ArchitectureTest {
     }
     @Test fun `connected screens cannot import demo repositories or prototype state`() {
         val paths = listOf("features/identity/presentation/HomeScreen.kt", "features/identity/presentation/profile",
-            "features/campaign/presentation/manage", "features/campaign/presentation/discovery",
+            "features/campaign/presentation/manage", "features/campaign/presentation/applicants", "features/campaign/presentation/discovery",
             "features/campaign/presentation/applications", "features/campaign/presentation/dashboard")
         for (path in paths) for (file in File(source, path).walkTopDown().filter { it.isFile && it.extension == "kt" }) {
             val text = file.readText()

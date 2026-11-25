@@ -41,7 +41,7 @@ class CampaignPreparation(private val repository: CampaignRepository, private va
                 is ApiResult.Success -> {
                     val value = created.value
                     if (value.summary.brandId != brandId) return failure("La campaña devuelta no pertenece a esta empresa.", FailureKind.MALFORMED_RESPONSE)
-                    val stored = remember(draft.copy(serverId = value.summary.id, pending = null), value)
+                    val stored = remember(draft.copy(serverId = value.summary.id, serverVersion = value.version, pending = null), value)
                     if (stored is ApiResult.Failure) return stored
                 }
             }
@@ -60,6 +60,32 @@ class CampaignPreparation(private val repository: CampaignRepository, private va
             return if (details.summary.status == CampaignStatus.OPEN) ApiResult.Success(details)
                 else failure("La campaña está ${details.summary.status.name} y no se puede preparar ni publicar.", FailureKind.CONFLICT)
         }
+        val basicsMatch = details.matchesBasics(draft.basics.request())
+        val sameVersion = details.version != null && details.version == draft.serverVersion
+        // Lost writes are safe to recover only when the server already reflects the intended change.
+        val recoveredMetadata = draft.pending == DraftOperation.METADATA && basicsMatch &&
+            details.version == draft.serverVersion?.plus(1)
+        if (!basicsMatch) {
+            if (!sameVersion) return versionConflict()
+            val saved = remember(draft.copy(pending = DraftOperation.METADATA), details)
+            if (saved is ApiResult.Failure) return saved
+            when (val result = repository.updateDraft(id, draft.basics.request(), details.version!!)) {
+                is ApiResult.Failure -> return failed(result.error, DraftOperation.METADATA)
+                is ApiResult.Success -> {
+                    val updated = result.value
+                    if (updated.summary.id != id || updated.summary.brandId != brandId ||
+                        updated.summary.status != CampaignStatus.DRAFT || updated.version == null ||
+                        !updated.matchesBasics(draft.basics.request()))
+                        return failure("No se pudo confirmar la edición del borrador.", FailureKind.MALFORMED_RESPONSE)
+                    details = updated
+                    val stored = remember(draft.copy(serverVersion = updated.version, pending = null), updated)
+                    if (stored is ApiResult.Failure) return stored
+                }
+            }
+        } else if (recoveredMetadata) {
+            val stored = remember(draft.copy(serverVersion = details.version, pending = null), details)
+            if (stored is ApiResult.Failure) return stored
+        }
         if (goal == PreparationGoal.BASIC_DRAFT) {
             val saved = remember(draft.copy(pending = null), details)
             return if (saved is ApiResult.Failure) saved else ApiResult.Success(details)
@@ -69,9 +95,10 @@ class CampaignPreparation(private val repository: CampaignRepository, private va
             is ApiResult.Success -> result.value
         }
         if (!details.matches(conditions!!)) {
+            if (details.version == null || details.version != draft.serverVersion) return versionConflict()
             val saved = remember(draft.copy(pending = DraftOperation.CONDITIONS, conditionsSaved = false), details)
             if (saved is ApiResult.Failure) return saved
-            when (val result = repository.saveConditions(id, conditions)) {
+            when (val result = repository.saveConditions(id, conditions.copy(expectedVersion = details.version))) {
                 is ApiResult.Failure -> return failed(result.error, DraftOperation.CONDITIONS)
                 is ApiResult.Success -> {
                     if (result.value.summary.id != id || result.value.summary.brandId != brandId ||
@@ -81,7 +108,7 @@ class CampaignPreparation(private val repository: CampaignRepository, private va
                 }
             }
         }
-        val stored = remember(draft.copy(pending = null, conditionsSaved = true), details)
+        val stored = remember(draft.copy(pending = null, conditionsSaved = true, serverVersion = details.version), details)
         if (stored is ApiResult.Failure) return stored
         if (goal == PreparationGoal.CONDITIONS) return ApiResult.Success(details)
         val publishing = remember(draft.copy(pending = DraftOperation.PUBLISH), details)
@@ -102,5 +129,9 @@ class CampaignPreparation(private val repository: CampaignRepository, private va
         val completed = remember(draft.copy(pending = null), details)
         return if (completed is ApiResult.Failure) completed else ApiResult.Success(details)
     }
+    private fun versionConflict() = ApiResult.Failure(ApiFailure(
+        FailureKind.CONFLICT, "CONCURRENT_UPDATE",
+        "El borrador cambió en el servidor o no tiene una versión local. Consulta la versión actual antes de continuar."
+    ))
     private fun failure(message: String, kind: FailureKind = FailureKind.CONFLICT) = ApiResult.Failure(ApiFailure(kind, message = message))
 }

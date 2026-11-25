@@ -49,14 +49,26 @@ internal class FakeCampaigns : CampaignRepository {
         val id = idempotency.getOrPut(key) { UUID.randomUUID() }
         val existing = records.getOrPut(id) { CampaignDetails(CampaignSummary(id, CampaignFixtures.brandId, "Marca real", campaign.title,
             campaign.category, campaign.location, null, null, CampaignStatus.DRAFT, false), campaign.objective, campaign.description,
-            campaign.targetAudience, null, emptyList(), emptyList()) }
+            campaign.targetAudience, null, emptyList(), emptyList(), version = 0) }
         createAfterCommitFailure?.let { createAfterCommitFailure = null; return it }
         return ApiResult.Success(existing)
+    }
+    override suspend fun updateDraft(id: UUID, campaign: NewCampaign, expectedVersion: Long): ApiResult<CampaignDetails> {
+        events.add("metadata")
+        val current = records.getValue(id)
+        if (current.version != expectedVersion) return CampaignFixtures.failure(FailureKind.CONFLICT, 409, "CONCURRENT_UPDATE")
+        val value = current.copy(summary = current.summary.copy(title = campaign.title, category = campaign.category, location = campaign.location),
+            objective = campaign.objective, description = campaign.description, targetAudience = campaign.targetAudience,
+            version = expectedVersion + 1)
+        records[id] = value
+        return ApiResult.Success(value)
     }
     override suspend fun saveConditions(id: UUID, conditions: CampaignConditions): ApiResult<CampaignDetails> {
         events.add("conditions"); conditionsFailure?.let { return it }
         val current = records.getValue(id)
-        val value = current.copy(summary = current.summary.copy(compensation = conditions.compensation, applicationDeadline = conditions.applicationDeadline),
+        if (conditions.expectedVersion != null && conditions.expectedVersion != current.version)
+            return CampaignFixtures.failure(FailureKind.CONFLICT, 409, "CONCURRENT_UPDATE")
+        val value = current.copy(version = current.version?.plus(1), summary = current.summary.copy(compensation = conditions.compensation, applicationDeadline = conditions.applicationDeadline),
             requirements = conditions.requirements.map { Requirement(UUID.randomUUID(), it.description, it.mandatory, it.ruleType, it.expectedValue) },
             deliverables = conditions.deliverables.map { DeliverableSpec(UUID.randomUUID(), it.contentType, it.description, it.quantity, it.deadline) })
         records[id] = value

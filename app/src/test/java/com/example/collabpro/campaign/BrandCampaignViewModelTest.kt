@@ -61,10 +61,17 @@ class BrandCampaignViewModelTest {
         assertNotNull(vm.ui.value.editor.storageFailure); assertEquals(CampaignFixtures.basics, vm.ui.value.editor.draft?.basics)
         drafts.failSave = false; vm.prepare(PreparationGoal.PUBLICATION); runCurrent(); assertEquals(1, repository.records.size)
     }
-    @Test fun `double submit performs one workflow and locks saved metadata`() = runTest(main.dispatcher) {
+    @Test fun `double submit creates once and subsequent edits update the same draft`() = runTest(main.dispatcher) {
         login(); runCurrent(); fill(); vm.prepare(PreparationGoal.BASIC_DRAFT); vm.prepare(PreparationGoal.BASIC_DRAFT); runCurrent()
-        assertEquals(1, repository.events.count { it == "create" }); assertTrue(vm.ui.value.editor.metadataLocked)
-        vm.editBasics { copy(title = "Otro título") }; assertEquals("Título", vm.ui.value.editor.draft?.basics?.title)
+        assertEquals(1, repository.events.count { it == "create" })
+        assertFalse(vm.ui.value.editor.metadataLocked)
+        val id = vm.ui.value.editor.draft?.serverId
+        vm.editBasics { copy(title = "Otro título") }
+        vm.prepare(PreparationGoal.BASIC_DRAFT)
+        runCurrent()
+        assertEquals(id, vm.ui.value.editor.draft?.serverId)
+        assertEquals("Otro título", repository.records.getValue(id!!).summary.title)
+        assertEquals(1, repository.events.count { it == "create" })
     }
     @Test fun `partial success retains UUID draft fields and retry finishes publication`() = runTest(main.dispatcher) {
         login(); runCurrent(); fill(); repository.conditionsFailure = CampaignFixtures.failure(FailureKind.REQUIREMENTS_NOT_MET, 422)

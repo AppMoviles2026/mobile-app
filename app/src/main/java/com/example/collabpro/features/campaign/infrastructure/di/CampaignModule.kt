@@ -34,6 +34,9 @@ internal object CampaignModule {
     @Provides @Singleton fun applications(api: ApplicationApi, executor: ApiExecutor): ApplicationRepository = RemoteApplicationRepository(api, executor)
     @Provides @Singleton fun campaignUseCases(repository: CampaignRepository) = CampaignUseCases(repository)
     @Provides @Singleton fun applicationUseCases(repository: ApplicationRepository) = ApplicationUseCases(repository)
+    @Provides fun evaluation(retrofit: Retrofit, executor: ApiExecutor): ApplicantEvaluationRepository =
+        RemoteApplicantEvaluation(retrofit.create(ApplicantEvaluationApi::class.java), executor)
+    @Provides fun evaluate(repository: ApplicantEvaluationRepository) = EvaluateApplication(repository)
     @Provides fun findOwnApplication(repository: ApplicationRepository) = FindOwnApplication(repository)
     @Provides fun ownActivityTotal(campaigns: CampaignRepository, applications: ApplicationRepository) = LoadOwnActivityTotal(campaigns, applications)
 }

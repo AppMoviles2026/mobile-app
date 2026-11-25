@@ -49,7 +49,7 @@ Referencias de código: `app/src/main/java/com/example/collabpro/navigation/{Col
 | Orden | Contexto | Alcance | Dependencia principal |
 | ---: | --- | --- | --- |
 | 1 | Identity | US-12 integrada. Regresión de identidad y autenticación de las rutas de perfil empresarial. | Sesión existente |
-| 2 | Campaign | US-20 pendiente y compatibilidad de versiones | Campaign existente |
+| 2 | Campaign | US-20 integrada y edición de borradores/condiciones con versión | Campaign existente |
 | 3 | Collaboration | US-21 y US-22 pendientes | 2 |
 | 4 | Collaboration | US-23 pendiente + US-24 nueva | 3 |
 | 5 | Collaboration | US-25 y US-30 nuevas | 3 y 4 |
@@ -76,6 +76,12 @@ git commit -m "feat(identity): connect versioned brand profile on Android"
 ```
 
 ### 2. Campaign · Evaluación empresarial
+
+**Estado (24 de noviembre de 2026):** integrado. Desde Mis campañas → detalle → Ver postulaciones, la empresa consulta, filtra, pagina, selecciona o rechaza con motivo. Mis postulaciones muestra al creador el resultado del servidor. El detalle conserva el UUID de la postulación para la propuesta de acuerdo del bloque 3.
+
+La edición guarda la versión del borrador junto con sus checkpoints locales. Al actualizar metadatos usa PATCH, y las condiciones usan la versión que dejó la última escritura confirmada. Un conflicto conserva la edición local y permite consultar o cargar el borrador vigente de forma expresa. Los borradores locales antiguos sin versión se deben cotejar con el servidor antes de aplicar cambios.
+
+**Verificación:** la integración con MySQL aislado cubrió PATCH y control de versión, listado/detalle de postulantes, prohibición para el creador en las rutas de evaluación, selección y rechazo posterior al cierre de postulaciones, y motivo visible en la consulta propia del creador.
 
 - **US-20:** enlazar desde Mis campañas y su detalle, con UUID de campaña. Consumir listado y detalle `GET /campaigns/{id}/applications[/{applicationId}]` y `POST .../{applicationId}/decision`. Mostrar perfil, propuesta, requisitos y estado. Seleccionar o rechazar una postulación pendiente, con motivo al rechazar y versión actual. Refrescar listado y detalle. Mostrar resultado y motivo cuando estén disponibles en Mis postulaciones del creador.
 - **Compatibilidad US-15/16/19:** transportar `version` de campaña y `expectedVersion` al guardar condiciones. Usar `PATCH /campaigns/{id}` para editar metadatos si un borrador ya existe, conservando la preparación y el manejo de éxitos parciales. Mantener la edición/cancelación propia concurrente con la decisión empresarial.

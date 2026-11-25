@@ -121,7 +121,7 @@ class BrandCampaignViewModel @Inject constructor(private val useCases: CampaignU
                 notice = if (result is ApiResult.Success) {
                     if (result.value.summary.status == CampaignStatus.OPEN) "Publicación confirmada por el servidor. La campaña ya es visible para creadores."
                     else if (goal == PreparationGoal.CONDITIONS) "Condiciones guardadas. La campaña sigue en borrador, sin publicarse."
-                    else "Borrador creado en el servidor. Completa las condiciones antes de publicar."
+                    else "Borrador guardado en el servidor. Completa las condiciones antes de publicar."
                 } else partialNotice())) }
             if (result is ApiResult.Success) loadCampaigns(ui.value.campaigns.page?.page ?: 0)
         }
@@ -160,7 +160,11 @@ class BrandCampaignViewModel @Inject constructor(private val useCases: CampaignU
                 val details = checked.value
                 if (!owned(details, id)) { mutableUi.update { it.copy(editor = it.editor.copy(busy = false, failure = malformed())) }; return }
                 val parsed = CampaignDraftValidation.conditions(draft.conditions, clock.instant())
-                val next = draft.copy(pending = null, conditionsSaved = parsed is ApiResult.Success && details.matches(parsed.value))
+                val termsMatch = parsed is ApiResult.Success && details.matches(parsed.value)
+                val recovered = details.matchesBasics(draft.basics.request()) &&
+                    (termsMatch || (draft.pending == DraftOperation.METADATA && details.version == draft.serverVersion?.plus(1)))
+                val next = draft.copy(pending = null, conditionsSaved = termsMatch,
+                    serverVersion = if (recovered) details.version else draft.serverVersion)
                 val saved = checkpoint(revision, next, details)
                 if (active(revision)) mutableUi.update { it.copy(editor = it.editor.copy(busy = false,
                     failure = (saved as? ApiResult.Failure)?.error,
@@ -238,8 +242,13 @@ class BrandCampaignViewModel @Inject constructor(private val useCases: CampaignU
         persistJob?.cancel(); val revision = generation
         mutableUi.update { it.copy(editor = it.editor.copy(busy = true)) }
         editorJob = launchForOwner launch@ {
-            val next = if (existing?.serverId == details.summary.id || (existing?.creation != null && existing.serverId == null))
-                existing.copy(serverId = details.summary.id, pending = null, step = 2) else details.toDraft()
+            val next = when {
+                existing?.serverId == details.summary.id -> existing.copy(step = 2)
+                existing?.creation != null && existing.serverId == null -> existing.copy(
+                    serverId = details.summary.id, serverVersion = details.version, pending = null, step = 2
+                )
+                else -> details.toDraft()
+            }
             val saved = checkpoint(revision, next, details)
             if (active(revision)) mutableUi.update { it.copy(editor = it.editor.copy(busy = false, failure = (saved as? ApiResult.Failure)?.error),
                 navigate = if (saved is ApiResult.Success) CampaignView.TERMS else null) }

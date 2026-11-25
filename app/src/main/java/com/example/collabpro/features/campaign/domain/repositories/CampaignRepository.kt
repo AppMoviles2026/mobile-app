@@ -6,6 +6,7 @@ import java.util.UUID
 
 interface CampaignRepository {
     suspend fun create(campaign: NewCampaign, key: IdempotencyKey): ApiResult<CampaignDetails>
+    suspend fun updateDraft(id: UUID, campaign: NewCampaign, expectedVersion: Long): ApiResult<CampaignDetails>
     suspend fun saveConditions(id: UUID, conditions: CampaignConditions): ApiResult<CampaignDetails>
     suspend fun publish(id: UUID): ApiResult<CampaignDetails>
     suspend fun mine(page: PageRequest = PageRequest()): ApiResult<Page<CampaignSummary>>

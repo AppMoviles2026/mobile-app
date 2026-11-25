@@ -46,6 +46,7 @@ class RealOwnApplicationsIntegrationTest {
         val identity = RemoteIdentityRepository(retrofit.create(IdentityApi::class.java), executor)
         val campaigns = RemoteCampaignRepository(retrofit.create(CampaignApi::class.java), executor)
         val applications = RemoteApplicationRepository(retrofit.create(ApplicationApi::class.java), executor)
+        val evaluation = RemoteApplicantEvaluation(retrofit.create(ApplicantEvaluationApi::class.java), executor)
         val totals = LoadOwnActivityTotal(campaigns, applications)
         val authentication = AuthenticationSession(identity, sessions, clock)
         fun <T> ApiResult<T>.success(): T {
@@ -63,14 +64,20 @@ class RealOwnApplicationsIntegrationTest {
         authentication.signIn(brandEmail, password).success()
         val brand = (authentication.state.value as SessionState.Authenticated).account
         assertEquals(0L, totals.campaigns(brand.profileId).success())
-        val campaignId = campaigns.create(NewCampaign("Campaña $token", "Colaborar", "Descripción", "Moda", "Adultos", "Lima"), IdempotencyKey()).success().summary.id
+        val metadata = NewCampaign("Campaña $token", "Colaborar", "Descripción", "Moda", "Adultos", "Lima")
+        val initial = campaigns.create(metadata, IdempotencyKey()).success()
+        val campaignId = initial.summary.id
+        val patched = campaigns.updateDraft(campaignId, metadata.copy(description = null), initial.version!!).success()
+        assertNull(patched.description)
+        campaigns.updateDraft(campaignId, metadata, initial.version).code("CONCURRENT_UPDATE")
         val deadline = clock.instant().plus(1, ChronoUnit.DAYS).truncatedTo(ChronoUnit.SECONDS)
         val campaign = campaigns.saveConditions(campaignId, CampaignConditions(
             listOf(NewRequirement("Confirmar plazo", true, RequirementRule.MANUAL_CONFIRMATION, null),
                 NewRequirement("Nicho Moda", true, RequirementRule.NICHE_EQUALS, "Moda"),
                 NewRequirement("Confirmar experiencia", false, RequirementRule.MANUAL_CONFIRMATION, null)),
             listOf(NewDeliverable("Video", "Mostrar producto", 1, deadline.plus(1, ChronoUnit.DAYS))), deadline,
-            Compensation(CompensationType.PRODUCT, null, null, "Producto por contenido"))).success()
+            Compensation(CompensationType.PRODUCT, null, null, "Producto por contenido"), expectedVersion = patched.version)).success()
+        assertTrue(campaign.version!! > patched.version!!) 
         campaigns.publish(campaignId).success()
         assertEquals(1L, totals.campaigns(brand.profileId).success())
         assertEquals(FailureKind.FORBIDDEN, (applications.mine() as ApiResult.Failure).error.kind)
@@ -105,7 +112,31 @@ class RealOwnApplicationsIntegrationTest {
         assertEquals(FailureKind.FORBIDDEN, (applications.cancel(original.id, original.version) as ApiResult.Failure).error.kind)
         authentication.signOut(); authentication.signIn(brandEmail, password).success()
         assertEquals(FailureKind.FORBIDDEN, (applications.details(original.id) as ApiResult.Failure).error.kind)
+        val firstPage = evaluation.list(campaignId, PageRequest(0, 1), ApplicationStatus.PENDING).success()
+        assertEquals(original.id, firstPage.items.single().application.id)
+        assertEquals(profile.profileId, evaluation.detail(campaignId, original.id).success().creator?.id)
+        authentication.signOut(); authentication.signIn(otherEmail, password).success()
+        assertTrue(evaluation.list(campaignId, PageRequest(), null) is ApiResult.Failure)
+        identity.updateCreatorProfile(CreatorProfileUpdate("Otro creador", niche = "Moda")).success()
+        val another = applications.submit(campaignId, "Otra propuesta", setOf(manual), IdempotencyKey()).success()
+        authentication.signOut()
+        val thirdEmail = "selected-app-$token@example.test"
+        identity.registerCreator("Creador seleccionado", thirdEmail, password).success()
+        authentication.signIn(thirdEmail, password).success()
+        identity.updateCreatorProfile(CreatorProfileUpdate("Creador seleccionado", niche = "Moda")).success()
+        val third = applications.submit(campaignId, "Tercera propuesta", setOf(manual), IdempotencyKey()).success()
+        authentication.signOut(); authentication.signIn(brandEmail, password).success()
         campaigns.close(campaignId).success()
+        evaluation.decide(campaignId, another.id, ApplicantDecision.REJECTED, "Otra propuesta encaja mejor", another.version).success()
+        val selected = evaluation.decide(campaignId, third.id, ApplicantDecision.SELECTED, null, third.version).success()
+        assertEquals(third.id, selected.application.id)
+        assertEquals(ApplicationStatus.SELECTED, selected.application.status)
+        assertEquals(1L, evaluation.list(campaignId, PageRequest(), ApplicationStatus.PENDING).success().total)
+        authentication.signOut(); authentication.signIn(otherEmail, password).success()
+        val rejected = applications.details(another.id).success()
+        assertEquals("Otra propuesta encaja mejor", rejected.decisionReason)
+        assertNotNull(rejected.decidedAt)
+        assertEquals(ApplicationStatus.REJECTED, rejected.status)
         authentication.signOut(); authentication.signIn(creatorEmail, password).success()
         // A closed campaign still permits editing/cancelling its existing pending application.
         val edited = applications.updateMessage(original.id, "Propuesta editada", original.version).success()

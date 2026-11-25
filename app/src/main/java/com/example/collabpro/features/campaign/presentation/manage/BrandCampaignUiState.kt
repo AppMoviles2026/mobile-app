@@ -9,7 +9,7 @@ enum class CampaignView { LIST, BASICS, TERMS, DETAIL }
 data class CampaignEditorUiState(val draft: CampaignDraft? = null, val details: CampaignDetails? = null,
     val restoring: Boolean = true, val busy: Boolean = false, val localSaving: Boolean = false,
     val failure: ApiFailure? = null, val storageFailure: ApiFailure? = null, val notice: String? = null) {
-    val metadataLocked get() = draft?.serverId != null || draft?.creation != null
+    val metadataLocked get() = readOnly || draft?.pending != null || (draft?.serverId == null && draft?.creation != null)
     val readOnly get() = details?.summary?.status?.let { it != CampaignStatus.DRAFT } == true
     val conditionsLocked get() = busy || restoring || readOnly || draft?.pending != null || (draft?.serverId != null && details == null)
 }

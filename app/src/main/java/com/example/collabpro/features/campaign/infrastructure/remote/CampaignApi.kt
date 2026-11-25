@@ -6,6 +6,9 @@ import retrofit2.http.*
 
 internal interface CampaignApi {
     @POST("campaigns") suspend fun create(@Tag session: SessionCredentials, @Header("Idempotency-Key") key: String, @Body body: CreateCampaignDto): Response<CampaignDto>
+    @PATCH("campaigns/{id}") suspend fun updateDraft(
+        @Tag session: SessionCredentials, @Path("id") id: String, @Body body: PatchCampaignDto
+    ): Response<CampaignDto>
     @PUT("campaigns/{id}/conditions") suspend fun conditions(@Tag session: SessionCredentials, @Path("id") id: String, @Body body: ConditionsDto): Response<CampaignDto>
     @POST("campaigns/{id}/publication") suspend fun publish(@Tag session: SessionCredentials, @Path("id") id: String): Response<CampaignDto>
     @GET("campaigns/mine") suspend fun mine(@Tag session: SessionCredentials, @Query("page") page: Int, @Query("size") size: Int): Response<PageDto<CampaignDto>>

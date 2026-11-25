@@ -17,20 +17,22 @@ data class CampaignSummary(
 )
 data class CampaignDetails(
     val summary: CampaignSummary, val objective: String, val description: String?, val targetAudience: String,
-    val publicationDate: Instant?, val requirements: List<Requirement>, val deliverables: List<DeliverableSpec>
+    val publicationDate: Instant?, val requirements: List<Requirement>, val deliverables: List<DeliverableSpec>,
+    val version: Long? = null
 )
 enum class ApplicationStatus { PENDING, SELECTED, REJECTED, CANCELLED }
 data class Application(
     val id: UUID, val campaignId: UUID, val creatorId: UUID, val campaignTitle: String, val brandName: String,
     val message: String, val status: ApplicationStatus, val submittedAt: Instant,
-    val confirmedRequirementIds: Set<UUID>, val version: Long
+    val confirmedRequirementIds: Set<UUID>, val version: Long,
+    val decidedAt: Instant? = null, val decidedBy: UUID? = null, val decisionReason: String? = null
 )
 data class NewCampaign(val title: String, val objective: String, val description: String?, val category: String, val targetAudience: String, val location: String?)
 data class NewRequirement(val description: String, val mandatory: Boolean, val ruleType: RequirementRule, val expectedValue: String?)
 data class NewDeliverable(val contentType: String, val description: String, val quantity: Int, val deadline: Instant)
 data class CampaignConditions(
     val requirements: List<NewRequirement>, val deliverables: List<NewDeliverable>,
-    val applicationDeadline: Instant, val compensation: Compensation
+    val applicationDeadline: Instant, val compensation: Compensation, val expectedVersion: Long? = null
 )
 data class CampaignSearch(val query: String? = null, val category: String? = null, val location: String? = null, val compensationType: CompensationType? = null)
 
