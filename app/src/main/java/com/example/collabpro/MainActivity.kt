@@ -20,6 +20,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import kotlinx.coroutines.launch
+import com.example.collabpro.features.billing.presentation.sandbox.SandboxBillingViewModel
 import com.example.collabpro.navigation.CollabApp
 import com.example.collabpro.ui.theme.CollabProTheme
 import dagger.hilt.android.AndroidEntryPoint
@@ -35,6 +36,8 @@ class MainActivity : ComponentActivity() {
     private val campaignDiscovery: CampaignDiscoveryViewModel by viewModels()
     private val ownApplications: OwnApplicationsViewModel by viewModels()
     private val dashboard: ActivityDashboardViewModel by viewModels()
+    private val billing: SandboxBillingViewModel by viewModels()
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         receiveIdentityLink(intent)
@@ -47,7 +50,7 @@ class MainActivity : ComponentActivity() {
         }
         enableEdgeToEdge()
         setContent {
-            CollabProTheme { CollabApp(authentication, creatorIdentity, brandCampaigns, campaignDiscovery, ownApplications, dashboard, brandProfile, applicants, collaborations) }
+            CollabProTheme { CollabApp(authentication, creatorIdentity, brandCampaigns, campaignDiscovery, ownApplications, dashboard, brandProfile, applicants, collaborations, billing) }
         }
     }
 
@@ -77,6 +80,7 @@ class MainActivity : ComponentActivity() {
             if (raw != null && incoming.data?.scheme == "collabpro") when (incoming.data?.host) {
                 "password-reset" -> authentication.openPasswordReset(raw)
                 "social-authorization-completed" -> creatorIdentity.receiveAuthorizationReturn(raw)
+                "billing-return", "subscription-return", "compensation-return" -> billing.receiveReturn(raw)
             }
         }
         incoming?.data = null // Do not keep a recovery token in the activity's saved/restored intent.

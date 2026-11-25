@@ -96,7 +96,7 @@ internal fun SignaturesPanel(record: AgreementRecord) {
 }
 
 internal fun LazyListScope.detail(record: CollaborationRecord, enabled: Boolean,
-    model: CollaborationWorkspaceViewModel, historical: Boolean = false) {
+    model: CollaborationWorkspaceViewModel, historical: Boolean = false, onCompensation: (() -> Unit)? = null) {
     item {
         Panel(record.snapshot.title) {
             InfoRow("Empresa", record.snapshot.brandName)
@@ -117,6 +117,7 @@ internal fun LazyListScope.detail(record: CollaborationRecord, enabled: Boolean,
         }
     }
     item {
+        if (onCompensation != null) Action("Ver compensación", onCompensation, secondary = true, enabled = enabled)
         Action("Ver entregas", { model.open(Destination(DELIVERIES, record.id)) }, enabled = enabled)
         Action("Ver incidencias", { model.open(Destination(INCIDENTS, record.id)) }, secondary = true, enabled = enabled)
         Action("Ver cronología", { model.open(Destination(TIMELINE, record.id)) }, secondary = true, enabled = enabled)

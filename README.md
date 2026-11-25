@@ -20,7 +20,9 @@ Las fases 2–8 del plan inicial cubrieron las primeras 18 posiciones del backlo
 
 US-01 a US-08 describen originalmente una **Landing Page web**. La app incluye su recorrido informativo en formato móvil. El escenario de escritorio de US-07 corresponde a la implementación web y no se puede verificar desde un APK Android.
 
-Billing y Performance conservan sus prototipos. El historial de colaboraciones está integrado en Collaboration. Los bloques y su avance están en el [plan del Sprint 3](docs/PLAN_IMPLEMENTACION_SPRINT_3.md).
+Billing está integrado con PayPal Sandbox. Performance conserva su prototipo. Los bloques y su avance están en el [plan del Sprint 3](docs/PLAN_IMPLEMENTACION_SPRINT_3.md).
+
+Desde **Inicio**, la empresa abre **Pagos y suscripción** y el creador abre **Cuenta receptora**. Ambos consultan **Ver compensación** desde el detalle de la colaboración y su historial. Para el recorrido USD usa **Demo PayPal Sandbox USD** del seed con las cuentas PayPal de prueba vinculadas. Al volver de PayPal, la empresa confirma el ingreso en Android. El estado del envío al creador se consulta por separado.
 
 ## Estructura
 
@@ -29,7 +31,7 @@ Los paquetes `features/identity`, `features/campaign`, `features/collaboration`,
 - `domain`: modelos y contratos del contexto; los reales están en `model` y `repositories`.
 - `application`: casos de uso reales en `usecases`, separados de consultas del prototipo.
 - `infrastructure`: adapters REST, DTOs, mapeadores, DI y persistencia segura; repositorios Preview conservados exclusivamente para la maqueta.
-- `presentation`: ViewModel/UiState/Screens reales en `identity/presentation/auth`, `identity/presentation/profile`, `campaign/presentation/manage`, `campaign/presentation/discovery`, `campaign/presentation/applications` y `campaign/presentation/dashboard` y `collaboration/presentation/workspace`; Billing y Performance permanecen de demostración.
+- `presentation`: ViewModel/UiState/Screens reales en `identity/presentation/auth`, `identity/presentation/profile`, `campaign/presentation/manage`, `campaign/presentation/discovery`, `campaign/presentation/applications` y `campaign/presentation/dashboard`, `collaboration/presentation/workspace` y `billing/presentation/sandbox`.
 
 `navigation/CollabApp.kt` separa rutas públicas, verificación de sesión, nueva contraseña y recorrido privado. El `AppState` privado se crea con la cuenta verificada; no restaura un rol o ruta privados desde preferencias de navegación. `core/designsystem` concentra componentes visuales reutilizables.
 

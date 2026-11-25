@@ -3,6 +3,7 @@ package com.example.collabpro.foundation
 import com.example.collabpro.features.campaign.infrastructure.remote.*
 import com.example.collabpro.features.identity.infrastructure.remote.IdentityApi
 import com.example.collabpro.features.collaboration.infrastructure.remote.CollaborationApi
+import com.example.collabpro.features.billing.infrastructure.remote.BillingApi
 import org.junit.Assert.*
 import org.junit.Test
 import retrofit2.http.*
@@ -25,14 +26,14 @@ class ArchitectureTest {
     }
     @Test fun `retrofit contains exposes the connected mobile initiated operations`() {
         val httpAnnotations = setOf(GET::class.java, POST::class.java, PUT::class.java, PATCH::class.java, DELETE::class.java)
-        val methods = listOf(IdentityApi::class.java, CampaignApi::class.java, ApplicationApi::class.java, ApplicantEvaluationApi::class.java, CollaborationApi::class.java)
+        val methods = listOf(IdentityApi::class.java, CampaignApi::class.java, ApplicationApi::class.java, ApplicantEvaluationApi::class.java, CollaborationApi::class.java, BillingApi::class.java)
             .flatMap { it.declaredMethods.toList() }
             .filter { method -> method.annotations.any { it.annotationClass.java in httpAnnotations } }
-        assertEquals(58, methods.size)
+        assertEquals(77, methods.size)
         assertFalse(methods.any { it.name == "callback" })
     }
     @Test fun `future bounded contexts remain prototype only`() {
-        for (context in listOf("billing", "performance")) {
+        for (context in listOf("performance")) {
             val files = File(source, "features/$context").walkTopDown().filter { it.isFile && it.extension == "kt" }
             assertFalse("Future context must not call unsupported APIs: $context", files.any {
                 it.readText().contains("import retrofit2") || it.readText().contains("@HiltViewModel")
@@ -43,7 +44,7 @@ class ArchitectureTest {
         val paths = listOf("features/identity/presentation/HomeScreen.kt", "features/identity/presentation/profile",
             "features/campaign/presentation/manage", "features/campaign/presentation/applicants", "features/campaign/presentation/discovery",
             "features/campaign/presentation/applications", "features/campaign/presentation/dashboard",
-            "features/collaboration/presentation/workspace")
+            "features/collaboration/presentation/workspace", "features/billing/presentation/sandbox")
         for (path in paths) for (file in File(source, path).walkTopDown().filter { it.isFile && it.extension == "kt" }) {
             val text = file.readText()
             assertFalse("Prototype dependency in $file", Regex("^import .*?(Preview|AppState|SampleData)", RegexOption.MULTILINE).containsMatchIn(text))

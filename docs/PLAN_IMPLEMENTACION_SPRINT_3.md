@@ -2,7 +2,7 @@
 
 24 de noviembre de 2026 · Alcance propuesto para la app Android en Kotlin y Jetpack Compose, sobre el backend existente.
 
-El objetivo es cerrar el recorrido de ambas partes desde la evaluación de una postulación hasta la entrega revisada, la resolución de incidencias, la compensación, los resultados y el historial. Los siete commits propuestos son del repositorio Android. Los bloques 3, 4 y 5 se agrupan en un solo commit. El backend local ya ofrece los contratos necesarios para comenzar. Si el recorrido descubre un defecto del servidor, aislarlo en `platform` con su reproducción y corrección, sin mezclarlo con un commit de Android.
+El objetivo es cerrar el recorrido de ambas partes desde la evaluación de una postulación hasta la entrega revisada, la resolución de incidencias, la compensación, los resultados y el historial. Los cinco commits propuestos corresponden al repositorio Android. Los bloques 3–5 se agrupan en el commit de Collaboration y los bloques 6–8 en el de Billing. El backend local ya ofrece los contratos necesarios para comenzar. Si el recorrido descubre un defecto del servidor, aislarlo en `platform` con su reproducción y corrección, sin mezclarlo con un commit de Android.
 
 ## Selección del sprint
 
@@ -53,12 +53,12 @@ Referencias de código: `app/src/main/java/com/example/collabpro/navigation/{Col
 | 3 | Collaboration | US-21 y US-22 integradas | 2 |
 | 4 | Collaboration | US-23 y US-24 integradas | 3 |
 | 5 | Collaboration | US-25 y US-30 integradas | 3 y 4 |
-| 6 | Billing | US-26 nueva y retorno financiero reutilizable | Sesión existente |
-| 7 | Billing | US-27 nueva | 6 |
-| 8 | Billing | US-28 nueva | 4, 5 y 6. La suscripción no es un requisito del pago. |
+| 6 | Billing | US-26 integrada y retorno financiero reutilizable | Sesión existente |
+| 7 | Billing | US-27 integrada | 6 |
+| 8 | Billing | US-28 integrada | 4, 5 y 6. La suscripción no es un requisito del pago. |
 | 9 | Performance | US-29 nueva | 3 y 4. Enlace histórico del bloque 5. |
 
-Los bloques 3–5 se entregan juntos como un único commit de Collaboration. Los bloques 6–7 pueden avanzar en paralelo con Collaboration. Ejecutar los recorridos integrados al cerrar los bloques que los completan, sin reservar un commit para tareas de verificación aisladas.
+Los bloques 3–5 se entregan juntos como un único commit de Collaboration. Los bloques 6–8 se entregan juntos como un único commit de Billing. Ejecutar los recorridos integrados al cerrar los bloques que los completan, sin reservar un commit para tareas de verificación aisladas.
 
 ### 1. Identity · Perfil empresarial
 
@@ -112,7 +112,7 @@ git commit -m "feat(campaign): integrate applicant evaluation and campaign versi
 
 ### 5. Collaboration · Incidencias e historial
 
-**Estado:** integrado. El historial muestra los recursos asociados que informa la API. Las referencias de compensación y resultados se muestran como disponibilidad hasta integrar Billing y Performance.
+**Estado:** integrado. El historial muestra los recursos asociados que informa la API. Las referencias de compensación abren Billing cuando la API informa que existe el recurso. El historial muestra la disponibilidad de resultados para el bloque 9.
 
 **Verificación de los bloques 3–5:** 293 pruebas de Gradle aprobadas con MySQL/Mailpit aislados, sin omisiones. La integración desde los adaptadores de Android recorrió aceptación de ambas partes, reintentos, adjuntos privados, rechazo, incidencia, ampliación bilateral, corrección, aprobación e historial. En el emulador se navegó con la cuenta de prueba desde Colaborar → Historial hasta la colaboración completada y su pieza aprobada en versión 2. Las pruebas instrumentadas compilaron. Las pruebas de dispositivo de los formularios y del selector de documentos quedan separadas del recorrido automatizado de la API.
 
@@ -127,26 +127,26 @@ git commit -m "feat(collaboration): integrate agreements deliveries incidents an
 
 ### 6. Billing · Vinculación de medio financiero
 
+**Estado (24 de noviembre de 2026).** Integrado. Desde Inicio, la empresa abre medios de pago y el creador su cuenta receptora. Android abre únicamente URLs de PayPal Sandbox en Custom Tabs y coteja cada retorno con el intento y la sesión antes de consultar al backend.
+
 - **US-26:** reemplazar la captura local de tarjeta por PayPal Sandbox. Cargar y validar métodos de `/user/{id}/billing` y `/validation` con ID de cuenta. Iniciar con `requestId` y `client=ANDROID`, abrir la aprobación del proveedor en Custom Tabs, recuperar/cancelar intentos en `/billing/authorizations/{id}`. Marca usa PAYMENT y creador PAYOUT.
 - Registrar `collabpro://billing-return` en Android. Correlacionar el UUID de autorización con cuenta e intento, manejar recreación/retorno repetido y consultar el estado protegido. Reutilizar este patrón en los siguientes dos bloques. La consulta móvil se realiza sobre el backend; el callback lo procesa el servidor.
 - **Aceptación:** aprobación, error, retorno vencido/cancelado y ausencia de método muestran estados distintos. Un medio ajeno, revocado o de propósito incorrecto no habilita la operación.
 - Contrato `platform/docs/billing-linking-contracts.md`.
 
-```bash
-git commit -m "feat(billing): integrate verified PayPal Sandbox linking"
-```
-
 ### 7. Billing · Suscripción de empresa
+
+**Estado.** Integrado. Android consulta el catálogo, el historial y la suscripción actual. La activación de beneficios y la fecha pagada se leen del servidor.
 
 - **US-27:** consultar `/subscription-plans`, suscripción actual e historial de `/user/{id}`. Usar planes, precios, moneda y disponibilidad del servidor. Crear con método PAYMENT propio y clave persistida. Abrir el consentimiento y gestionar `collabpro://subscription-return`. Consultar detalle, actualizar, reanudar aprobación con versión y cancelar según el estado.
 - **Aceptación:** un intento creado o aprobado en navegador se muestra pendiente hasta confirmar el cobro. Mostrar `benefitsActive` y `paidThrough` según API. Cobro fallido o medio ausente conserva beneficios inactivos. Reintentos no duplican la suscripción.
 - Contrato `platform/docs/subscription-contracts.md`.
 
-```bash
-git commit -m "feat(billing): connect company subscriptions to the Sandbox API"
-```
-
 ### 8. Billing · Compensación
+
+**Estado.** Integrado. Ambos roles consultan condiciones, estado y actividad desde Collaboration. La empresa inicia la orden y confirma el ingreso explícitamente, con el estado del envío visible por separado.
+
+**Verificación de los bloques 6–8.** Pasaron 302 pruebas y Gradle compiló los APK de depuración y de pruebas instrumentadas. Los 19 contratos de Billing se probaron con respuestas controladas. En el emulador, con el backend local y MySQL aislado, la empresa abrió medios de pago, catálogo y la compensación de USD 5.00 del seed desde el historial. La pantalla mostró el ingreso y el envío por separado y bloqueó el pago con el proveedor deshabilitado. Queda pendiente el recorrido con consentimiento, captura y envío en PayPal Sandbox.
 
 - **US-28:** desde el detalle de colaboración y su historial consultar `GET /collaborations/{id}/compensation` (o por ID financiero autorizado), consultar auditoría y recuperar estado mediante `payment/refresh`. Mostrar condiciones firmadas, validaciones pendientes, bloqueo por incidencia, canje, moneda no admitida, ingreso recibido, envío pendiente/fallido, pago confirmado y reversión según respuesta.
 - Habilitar para empresa las acciones permitidas por el servidor. Enviar inicio, abrir aprobación y manejar `collabpro://compensation-return`. Refrescar con JWT y pedir confirmación expresa a la empresa mediante `payment/confirmation`. Conservar la misma clave ante resultado incierto. Si se permite reintentar un envío terminal, conservar el ingreso ya capturado. El creador consulta el estado y puede acceder a incidencias según permisos.
@@ -154,7 +154,7 @@ git commit -m "feat(billing): connect company subscriptions to the Sandbox API"
 - Contrato `platform/docs/compensation-contracts.md`.
 
 ```bash
-git commit -m "feat(billing): connect compensation funding and payout status"
+git commit -m "feat(billing): integrate PayPal Sandbox linking subscriptions and compensation"
 ```
 
 ### 9. Performance · Resultados, evidencia y atribución

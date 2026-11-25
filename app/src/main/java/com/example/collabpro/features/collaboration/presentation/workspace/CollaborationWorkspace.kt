@@ -29,7 +29,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 @Composable
-internal fun CollaborationWorkspace(session: SessionState.Authenticated, model: CollaborationWorkspaceViewModel, onBack: () -> Unit) {
+internal fun CollaborationWorkspace(session: SessionState.Authenticated, model: CollaborationWorkspaceViewModel, onBack: () -> Unit, onCompensation: (UUID) -> Unit) {
     val observed by model.ui.collectAsStateWithLifecycle()
     val state = observed.takeIf { it.owner == session.account.accountId && it.expiry == session.expiresAt } ?: CollaborationUiState(busy = true)
     val target = state.destination
@@ -149,7 +149,7 @@ internal fun CollaborationWorkspace(session: SessionState.Authenticated, model: 
                         model.report(content.record.id, category, description, target.resourceId, evidence)
                     }
                 }
-                else -> detail(content.record, enabled, model)
+                else -> detail(content.record, enabled, model, onCompensation = { onCompensation(content.record.id) })
             }
             is CollaborationContent.Deliveries -> {
                 filterList(target, listOf("PENDING_VALIDATION", "APPROVED", "REJECTED"), enabled, model)
@@ -208,6 +208,8 @@ internal fun CollaborationWorkspace(session: SessionState.Authenticated, model: 
                 item {
                     Panel("Recursos vinculados") {
                         InfoRow("Compensación", content.record.references.compensation.availability.resourceLabel())
+                        if (content.record.references.compensation.availability == "AVAILABLE")
+                            Action("Ver compensación", { onCompensation(content.record.collaboration.id) }, secondary = true, enabled = enabled)
                         InfoRow("Resultados", content.record.references.performance.availability.resourceLabel())
                     }
                 }

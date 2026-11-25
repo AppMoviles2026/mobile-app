@@ -49,6 +49,24 @@
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="collabpro" android:host="social-authorization-completed" />
             </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="collabpro" android:host="billing-return" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="collabpro" android:host="subscription-return" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="collabpro" android:host="compensation-return" />
+            </intent-filter>
         </activity>
     </application>
 

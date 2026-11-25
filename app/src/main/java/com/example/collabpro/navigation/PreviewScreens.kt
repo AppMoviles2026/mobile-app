@@ -2,7 +2,7 @@ package com.example.collabpro.navigation
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.tooling.preview.Preview
-import com.example.collabpro.features.billing.presentation.*
+import com.example.collabpro.features.billing.presentation.SandboxBillingSamples
 import com.example.collabpro.features.campaign.presentation.*
 import com.example.collabpro.features.collaboration.presentation.*
 import com.example.collabpro.features.identity.presentation.*
@@ -272,19 +272,19 @@ private val previewApplication = Application(UUID.fromString("00000000-0000-0000
 @Composable private fun IncidentFormPreview() = preview { IncidentFormScreen(AppState()) }
 
 @Preview(name = "Métodos de pago", showBackground = true, showSystemUi = true)
-@Composable private fun PaymentMethodsPreview() = preview { PaymentMethodsScreen(AppState()) }
+@Composable private fun PaymentMethodsPreview() = preview { SandboxBillingSamples.Methods() }
 
 @Preview(name = "Agregar método de pago", showBackground = true, showSystemUi = true)
-@Composable private fun PaymentFormPreview() = preview { PaymentFormScreen(AppState()) }
+@Composable private fun PaymentFormPreview() = preview { SandboxBillingSamples.Authorization() }
 
 @Preview(name = "Planes", showBackground = true, showSystemUi = true)
-@Composable private fun PlansPreview() = preview { PlansScreen(AppState()) }
+@Composable private fun PlansPreview() = preview { SandboxBillingSamples.Plans() }
 
 @Preview(name = "Suscripción", showBackground = true, showSystemUi = true)
-@Composable private fun SubscriptionPreview() = preview { SubscriptionScreen(AppState()) }
+@Composable private fun SubscriptionPreview() = preview { SandboxBillingSamples.Subscription() }
 
 @Preview(name = "Compensación", showBackground = true, showSystemUi = true)
-@Composable private fun CompensationPreview() = preview { CompensationScreen(AppState()) }
+@Composable private fun CompensationPreview() = preview { SandboxBillingSamples.Compensation() }
 
 @Preview(name = "Resultados", showBackground = true, showSystemUi = true)
 @Composable private fun ResultsPreview() = preview { ResultsScreen(AppState()) }

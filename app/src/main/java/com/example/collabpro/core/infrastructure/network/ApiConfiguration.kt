@@ -24,6 +24,9 @@ class ApiConfiguration(baseUrl: String, debug: Boolean) {
             path == "agreements" || path.startsWith("agreements/") ||
             path == "collaborations" || path.startsWith("collaborations/") ||
             path.startsWith("deliverables/") || path.startsWith("incidents/") ||
-            path.startsWith("collaboration-assets/")
+            path.startsWith("collaboration-assets/") ||
+            path.matches(Regex("user/[^/]+/(billing(/validation)?|subscriptions?)")) ||
+            path.startsWith("billing/authorizations/") || path == "subscription-plans" ||
+            path.startsWith("subscriptions/") || path.startsWith("compensations/")
     }
 }

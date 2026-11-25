@@ -18,7 +18,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.example.collabpro.features.billing.presentation.*
+import com.example.collabpro.features.billing.presentation.sandbox.*
+import com.example.collabpro.features.collaboration.presentation.workspace.CollaborationPage
+import com.example.collabpro.features.collaboration.presentation.workspace.Destination
+import java.util.UUID
 import com.example.collabpro.features.campaign.presentation.*
 import com.example.collabpro.features.collaboration.presentation.workspace.CollaborationWorkspace
 import com.example.collabpro.features.collaboration.presentation.workspace.CollaborationWorkspaceViewModel
@@ -35,14 +38,14 @@ import com.example.collabpro.features.campaign.application.drafts.PreparationGoa
 import com.example.collabpro.features.performance.presentation.*
 
 @Composable
-fun CollabApp(authentication: AuthenticationViewModel, creatorIdentity: CreatorIdentityViewModel, brandCampaigns: BrandCampaignViewModel, campaignDiscovery: CampaignDiscoveryViewModel, ownApplications: OwnApplicationsViewModel, dashboard: ActivityDashboardViewModel, brandProfile: BrandProfileViewModel, applicants: ApplicantEvaluationViewModel, collaborations: CollaborationWorkspaceViewModel) {
+fun CollabApp(authentication: AuthenticationViewModel, creatorIdentity: CreatorIdentityViewModel, brandCampaigns: BrandCampaignViewModel, campaignDiscovery: CampaignDiscoveryViewModel, ownApplications: OwnApplicationsViewModel, dashboard: ActivityDashboardViewModel, brandProfile: BrandProfileViewModel, applicants: ApplicantEvaluationViewModel, collaborations: CollaborationWorkspaceViewModel, billing: SandboxBillingViewModel) {
     Surface(Modifier.fillMaxSize()) {
-        Box(Modifier.fillMaxSize().safeDrawingPadding()) { AuthenticationContent(authentication, creatorIdentity, brandCampaigns, campaignDiscovery, ownApplications, dashboard, brandProfile, applicants, collaborations) }
+        Box(Modifier.fillMaxSize().safeDrawingPadding()) { AuthenticationContent(authentication, creatorIdentity, brandCampaigns, campaignDiscovery, ownApplications, dashboard, brandProfile, applicants, collaborations, billing) }
     }
 }
 
 @Composable
-private fun AuthenticationContent(authentication: AuthenticationViewModel, creatorIdentity: CreatorIdentityViewModel, brandCampaigns: BrandCampaignViewModel, campaignDiscovery: CampaignDiscoveryViewModel, ownApplications: OwnApplicationsViewModel, dashboard: ActivityDashboardViewModel, brandProfile: BrandProfileViewModel, applicants: ApplicantEvaluationViewModel, collaborations: CollaborationWorkspaceViewModel) {
+private fun AuthenticationContent(authentication: AuthenticationViewModel, creatorIdentity: CreatorIdentityViewModel, brandCampaigns: BrandCampaignViewModel, campaignDiscovery: CampaignDiscoveryViewModel, ownApplications: OwnApplicationsViewModel, dashboard: ActivityDashboardViewModel, brandProfile: BrandProfileViewModel, applicants: ApplicantEvaluationViewModel, collaborations: CollaborationWorkspaceViewModel, billing: SandboxBillingViewModel) {
     val session by authentication.session.collectAsStateWithLifecycle()
     val ui by authentication.ui.collectAsStateWithLifecycle()
     val identityUi by creatorIdentity.ui.collectAsStateWithLifecycle()
@@ -79,7 +82,7 @@ private fun AuthenticationContent(authentication: AuthenticationViewModel, creat
                 campaignUi.takeIf { it.ownerId == current.account.accountId && it.expiresAt == current.expiresAt } ?: BrandCampaignUiState(), campaignDiscovery,
                 discoveryUi.takeIf { it.ownerId == current.account.accountId && it.expiresAt == current.expiresAt } ?: CampaignDiscoveryUiState(), ownApplications,
                 applicationsUi.takeIf { it.ownerId == current.account.accountId && it.expiresAt == current.expiresAt } ?: OwnApplicationsUiState(), dashboard,
-                dashboardUi.takeIf { it.ownerId == current.account.accountId && it.expiresAt == current.expiresAt } ?: ActivityDashboardUiState(), brandProfile, current, applicants, collaborations)
+                dashboardUi.takeIf { it.ownerId == current.account.accountId && it.expiresAt == current.expiresAt } ?: ActivityDashboardUiState(), brandProfile, current, applicants, collaborations, billing)
         }
     }
 }
@@ -124,8 +127,21 @@ private fun PrivateRoutes(app: AppState, onSignOut: () -> Unit, creatorIdentity:
     campaignDiscovery: CampaignDiscoveryViewModel, discoveryUi: CampaignDiscoveryUiState,
     ownApplications: OwnApplicationsViewModel, applicationsUi: OwnApplicationsUiState,
     dashboard: ActivityDashboardViewModel, dashboardUi: ActivityDashboardUiState,
-    brandProfile: BrandProfileViewModel, session: SessionState.Authenticated, applicants: ApplicantEvaluationViewModel, collaborations: CollaborationWorkspaceViewModel) {
+    brandProfile: BrandProfileViewModel, session: SessionState.Authenticated, applicants: ApplicantEvaluationViewModel, collaborations: CollaborationWorkspaceViewModel, billing: SandboxBillingViewModel) {
     val account = app.authenticatedAccount ?: return
+    val billingState by billing.ui.collectAsStateWithLifecycle()
+    LaunchedEffect(billingState.navigation, billingState.owner, billingState.expiresAt) {
+        if (billingState.owner == account.accountId && billingState.expiresAt == session.expiresAt) {
+            billingState.navigation?.let { target ->
+                when (target.tab) {
+                    BillingTab.METHODS -> app.go(Route.PAYMENT_METHODS)
+                    BillingTab.SUBSCRIPTION -> app.go(Route.SUBSCRIPTION)
+                    BillingTab.COMPENSATION -> target.collaborationId?.let(app::openCompensation)
+                }
+                billing.consumeNavigation()
+            }
+        }
+    }
     val applicantState by applicants.ui.collectAsStateWithLifecycle()
     val evaluation = applicantState.takeIf { it.ownerId == account.accountId && it.expiry == session.expiresAt }
         ?: ApplicantEvaluationState()
@@ -206,7 +222,8 @@ private fun PrivateRoutes(app: AppState, onSignOut: () -> Unit, creatorIdentity:
             identityUi.externalNotice?.let { Text(it, Modifier.padding(horizontal = 16.dp), style = MaterialTheme.typography.labelSmall) }
             val connectedCampaign = (app.role == UserRole.BRAND && app.route in listOf(Route.BRAND_CAMPAIGNS, Route.CAMPAIGN_FORM, Route.CAMPAIGN_TERMS, Route.CAMPAIGN_DETAIL, Route.APPLICANTS, Route.APPLICANT_DETAIL)) ||
                 (app.role == UserRole.CREATOR && app.route in listOf(Route.CAMPAIGN_SEARCH, Route.CAMPAIGN_DETAIL, Route.APPLICATION_FORM, Route.MY_APPLICATIONS, Route.APPLICATION_DETAIL))
-            if (app.route != home && !connectedCampaign && app.route !in listOf(Route.BRAND_PROFILE, Route.CREATOR_PROFILE, Route.SOCIAL_ACCOUNTS, Route.COLLABORATIONS)) Text("PROTOTIPO • datos de ejemplo, no provienen del servidor", Modifier.padding(horizontal = 16.dp, vertical = 4.dp), style = MaterialTheme.typography.labelSmall)
+            if (app.route != home && !connectedCampaign && app.route !in listOf(Route.BRAND_PROFILE, Route.CREATOR_PROFILE, Route.SOCIAL_ACCOUNTS, Route.COLLABORATIONS,
+                    Route.PAYMENT_METHODS, Route.PAYMENT_FORM, Route.PLANS, Route.SUBSCRIPTION, Route.COMPENSATION)) Text("PROTOTIPO • datos de ejemplo, no provienen del servidor", Modifier.padding(horizontal = 16.dp, vertical = 4.dp), style = MaterialTheme.typography.labelSmall)
         }
     }, bottomBar = {
         NavigationBar {
@@ -218,10 +235,10 @@ private fun PrivateRoutes(app: AppState, onSignOut: () -> Unit, creatorIdentity:
         androidx.compose.foundation.layout.Box(Modifier.padding(padding)) {
             when (app.route) {
                 Route.BRAND_HOME -> HomeScreen(account, onSignOut, onCampaigns = { app.go(Route.BRAND_CAMPAIGNS) },
-                    onProfile = { app.go(Route.BRAND_PROFILE) }, summary = { ActivityDashboardPanel(dashboardUi, dashboard::refresh) })
+                    onProfile = { app.go(Route.BRAND_PROFILE) }, summary = { ActivityDashboardPanel(dashboardUi, dashboard::refresh) }, onBilling = { app.go(Route.PAYMENT_METHODS) })
                 Route.CREATOR_HOME -> HomeScreen(account, onSignOut, onCampaigns = { app.go(Route.CAMPAIGN_SEARCH) },
                     onProfile = { app.go(Route.CREATOR_PROFILE) }, onApplications = { app.go(Route.MY_APPLICATIONS) },
-                    summary = { ActivityDashboardPanel(dashboardUi, dashboard::refresh) }) {
+                    summary = { ActivityDashboardPanel(dashboardUi, dashboard::refresh) }, onBilling = { app.go(Route.PAYMENT_METHODS) }) {
                     CreatorOpportunitiesPanel(discoveryUi.opportunities, discoveryUi.now, campaignDiscovery::openDetails,
                         onRetry = { campaignDiscovery.loadOpportunities(force = true) }, onExplore = { app.go(Route.CAMPAIGN_SEARCH) })
                 }
@@ -267,16 +284,25 @@ private fun PrivateRoutes(app: AppState, onSignOut: () -> Unit, creatorIdentity:
                     onAgreement = { if (collaborations.propose(it)) app.go(Route.COLLABORATIONS) })
                 Route.COLLABORATIONS, Route.AGREEMENT, Route.COLLABORATION_DETAIL, Route.EVIDENCE_FORM,
                 Route.REVIEW_DELIVERABLE, Route.INCIDENTS, Route.INCIDENT_FORM, Route.HISTORY, Route.HISTORY_DETAIL ->
-                    CollaborationWorkspace(session, collaborations, app::back)
-                Route.PAYMENT_METHODS -> PaymentMethodsScreen(app)
-                Route.PAYMENT_FORM -> PaymentFormScreen(app)
-                Route.PLANS -> PlansScreen(app)
-                Route.SUBSCRIPTION -> SubscriptionScreen(app)
-                Route.COMPENSATION -> CompensationScreen(app)
+                    CollaborationWorkspace(session, collaborations, app::back, app::openCompensation)
+                Route.PAYMENT_METHODS, Route.PAYMENT_FORM, Route.PLANS, Route.SUBSCRIPTION, Route.COMPENSATION -> {
+                    val destination = when (app.route) {
+                        Route.PAYMENT_METHODS, Route.PAYMENT_FORM -> BillingDestination(BillingTab.METHODS)
+                        Route.PLANS, Route.SUBSCRIPTION -> BillingDestination(BillingTab.SUBSCRIPTION)
+                        else -> app.compensationCollaborationId?.let { BillingDestination(BillingTab.COMPENSATION, it) }
+                    }
+                    if (destination != null) BillingWorkspace(session, billing, destination, app::back,
+                        onMethods = { app.go(Route.PAYMENT_METHODS) }, onSubscription = { app.go(Route.SUBSCRIPTION) },
+                        onIncidents = { id ->
+                            collaborations.open(Destination(CollaborationPage.INCIDENTS, id))
+                            app.go(Route.COLLABORATIONS)
+                        })
+                }
                 Route.RESULTS -> ResultsScreen(app)
                 else -> HomeScreen(account, onSignOut, onCampaigns = { app.go(if (app.role == UserRole.BRAND) Route.BRAND_CAMPAIGNS else Route.CAMPAIGN_SEARCH) },
                     onProfile = { app.go(if (app.role == UserRole.BRAND) Route.BRAND_PROFILE else Route.CREATOR_PROFILE) },
-                    onApplications = { app.go(Route.MY_APPLICATIONS) }, summary = { ActivityDashboardPanel(dashboardUi, dashboard::refresh) })
+                    onApplications = { app.go(Route.MY_APPLICATIONS) }, summary = { ActivityDashboardPanel(dashboardUi, dashboard::refresh) },
+                    onBilling = { app.go(Route.PAYMENT_METHODS) })
             }
         }
     }
