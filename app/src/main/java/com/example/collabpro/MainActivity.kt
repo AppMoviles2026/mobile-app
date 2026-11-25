@@ -9,6 +9,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import com.example.collabpro.features.identity.presentation.auth.AuthenticationViewModel
 import com.example.collabpro.features.identity.presentation.profile.CreatorIdentityViewModel
+import com.example.collabpro.features.identity.presentation.profile.BrandProfileViewModel
 import com.example.collabpro.features.campaign.presentation.manage.BrandCampaignViewModel
 import com.example.collabpro.features.campaign.presentation.discovery.CampaignDiscoveryViewModel
 import com.example.collabpro.features.campaign.presentation.applications.OwnApplicationsViewModel
@@ -25,6 +26,7 @@ import dagger.hilt.android.AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     private val authentication: AuthenticationViewModel by viewModels()
     private val creatorIdentity: CreatorIdentityViewModel by viewModels()
+    private val brandProfile: BrandProfileViewModel by viewModels()
     private val brandCampaigns: BrandCampaignViewModel by viewModels()
     private val campaignDiscovery: CampaignDiscoveryViewModel by viewModels()
     private val ownApplications: OwnApplicationsViewModel by viewModels()
@@ -41,7 +43,7 @@ class MainActivity : ComponentActivity() {
         }
         enableEdgeToEdge()
         setContent {
-            CollabProTheme { CollabApp(authentication, creatorIdentity, brandCampaigns, campaignDiscovery, ownApplications, dashboard) }
+            CollabProTheme { CollabApp(authentication, creatorIdentity, brandCampaigns, campaignDiscovery, ownApplications, dashboard, brandProfile) }
         }
     }
 

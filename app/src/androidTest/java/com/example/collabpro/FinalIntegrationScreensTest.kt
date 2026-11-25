@@ -2,6 +2,10 @@ package com.example.collabpro
 
 import android.provider.Browser
 import androidx.browser.customtabs.CustomTabsIntent
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createComposeRule
 import com.example.collabpro.core.domain.*
@@ -26,11 +30,17 @@ class FinalIntegrationScreensTest {
         compose.onNodeWithText("Maki Studio").assertDoesNotExist()
         compose.onNodeWithText("Camila Rojas").assertDoesNotExist()
     }
-    @Test fun businessAccountDoesNotOfferAnUnsupportedSave() {
-        compose.setContent { CollabProTheme { BrandAccountScreen(account) } }
-        compose.onNodeWithText("Nombre del servidor").assertExists()
-        compose.onNodeWithText("Guardar perfil").assertDoesNotExist()
-        compose.onNodeWithText("Rubro", substring = false).assertDoesNotExist()
+    @Test fun businessProfileOffersEditingAfterLoadingTheInitialProfile() {
+        val profile = BusinessProfile(account.profileId, account.name, null, null, null, 0)
+        compose.setContent { CollabProTheme {
+            var state by remember {
+                mutableStateOf(BrandProfileUiState(profile, BrandProfileDraft.from(profile)))
+            }
+            BrandProfileScreen(state, onEdit = { edit -> state = state.copy(draft = state.draft?.edit()) })
+        } }
+        compose.onNodeWithText("Nombre del servidor").assertExists().performTextReplacement("Nombre actualizado")
+        compose.onNode(hasScrollAction()).performScrollToNode(hasText("Guardar perfil"))
+        compose.onNodeWithText("Guardar perfil").assertIsEnabled()
     }
     @Test fun summaryErrorDoesNotPresentZeroOrPendingCounts() {
         compose.setContent { CollabProTheme { ActivityDashboardPanel(ActivityDashboardUiState(type = AccountType.CREATOR,

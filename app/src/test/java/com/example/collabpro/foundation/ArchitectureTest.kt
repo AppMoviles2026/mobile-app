@@ -22,12 +22,12 @@ class ArchitectureTest {
         assertTrue(modules.size >= 3)
         for (file in modules) assertFalse("Preview binding in $file", file.readText().contains("Preview"))
     }
-    @Test fun `retrofit contains exactly the twenty five mobile initiated operations`() {
+    @Test fun `retrofit contains exactly the twenty seven mobile initiated operations`() {
         val httpAnnotations = setOf(GET::class.java, POST::class.java, PUT::class.java, DELETE::class.java)
         val methods = listOf(IdentityApi::class.java, CampaignApi::class.java, ApplicationApi::class.java)
             .flatMap { it.declaredMethods.toList() }
             .filter { method -> method.annotations.any { it.annotationClass.java in httpAnnotations } }
-        assertEquals(25, methods.size)
+        assertEquals(27, methods.size)
         assertFalse(methods.any { it.name == "callback" })
     }
     @Test fun `future bounded contexts remain prototype only`() {

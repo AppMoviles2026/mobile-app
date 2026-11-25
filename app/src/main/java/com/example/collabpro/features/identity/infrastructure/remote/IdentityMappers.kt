@@ -12,6 +12,12 @@ internal fun SessionDto.toDomain(): Session {
     if (token.isBlank() || token.any { it.isWhitespace() || it.isISOControl() }) throw InvalidApiResponse("Invalid token")
     return Session(account.required("account").toDomain(), token, expiresAt.required("expiresAt"))
 }
+internal fun BrandProfileDto.toDomain(): BusinessProfile {
+    val name = businessName.required("businessName")
+    val revision = version.required("version")
+    if (name.isBlank() || revision < 0) throw InvalidApiResponse("Invalid brand profile")
+    return BusinessProfile(profileId.uuid("profileId"), name, description, category, location, revision)
+}
 internal fun CreatorProfileDto.toDomain() = CreatorProfile(profileId.uuid("profileId"), displayName.required("displayName"),
     biography, niche, audienceDescription, location)
 internal fun String?.platform(): SocialPlatform = SocialPlatform.entries.firstOrNull { it.wireValue == this }

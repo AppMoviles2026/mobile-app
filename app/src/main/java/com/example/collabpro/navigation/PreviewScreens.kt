@@ -89,14 +89,18 @@ import com.example.collabpro.ui.theme.CollabProTheme
 @Preview(name = "Panel • Error de resumen", showBackground = true, showSystemUi = true)
 @Composable private fun HomeErrorPreview() = preview { HomeScreen(previewAccount(AccountType.CREATOR), summary = { ActivityDashboardPanel(ActivityDashboardUiState(type = AccountType.CREATOR, failure = ApiFailure(FailureKind.NETWORK, message = "No se pudo consultar el resumen."))) }) }
 
-@Preview(name = "Cuenta empresarial • Datos del servidor", showBackground = true, showSystemUi = true)
-@Composable private fun BrandAccountPreview() = preview { BrandAccountScreen(previewAccount(AccountType.BRAND)) }
+@Preview(name = "Perfil empresarial • Cargando", showBackground = true, showSystemUi = true)
+@Composable private fun BrandProfileLoadingPreview() = preview { BrandProfileScreen(BrandProfileUiState(loading = true)) }
 
 private fun previewAccount(type: AccountType) = Account(UUID.fromString("00000000-0000-0000-0000-000000000031"), UUID.fromString("00000000-0000-0000-0000-000000000032"),
     if (type == AccountType.BRAND) "Empresa de ejemplo" else "Creadora de ejemplo", type, AccountStatus.ACTIVE)
 
 @Preview(name = "Perfil • Empresa", showBackground = true, showSystemUi = true)
-@Composable private fun BrandProfilePreview() = preview { BrandProfileScreen(AppState()) }
+@Composable private fun BrandProfilePreview() = preview {
+    val profile = BusinessProfile(UUID.fromString("00000000-0000-0000-0000-000000000012"), "Ayni Café",
+        "Café de especialidad.", "Gastronomía", "Lima", 1)
+    BrandProfileScreen(BrandProfileUiState(profile, BrandProfileDraft.from(profile)))
+}
 
 @Preview(name = "Perfil • Creador", showBackground = true, showSystemUi = true)
 @Composable private fun CreatorProfilePreview() = preview {

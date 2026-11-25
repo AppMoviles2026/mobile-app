@@ -19,6 +19,12 @@ internal class RemoteIdentityRepository(private val api: IdentityApi, private va
     override suspend fun resetPassword(token: String, newPassword: String) =
         executor.publicUnit { api.reset(PasswordResetDto(token, newPassword)) }
     override suspend fun currentAccount() = executor.protectedCall({ api.account(it) }) { it.toDomain() }
+    override suspend fun brandProfile() = executor.protectedCall({ api.brandProfile(it) }) { it.toDomain() }
+    override suspend fun updateBrandProfile(update: BusinessProfileUpdate) = executor.protectedCall({ session ->
+        api.updateBrandProfile(session, BrandProfileUpdateDto(
+            update.businessName, update.description, update.category, update.location, update.expectedVersion
+        ))
+    }) { it.toDomain() }
     override suspend fun creatorProfile() = executor.protectedCall({ api.profile(it) }) { it.toDomain() }
     override suspend fun updateCreatorProfile(update: CreatorProfileUpdate) = executor.protectedCall({ session ->
         api.updateProfile(session, ProfileUpdateDto(update.displayName, update.biography, update.niche, update.audienceDescription, update.location))

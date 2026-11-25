@@ -18,7 +18,7 @@ class ApiConfiguration(baseUrl: String, debug: Boolean) {
 
     fun isProtected(candidate: HttpUrl): Boolean {
         val path = candidate.encodedPath.removePrefix(url.encodedPath)
-        return path == "accounts/me" || path == "profiles/me/creator" ||
+        return path == "accounts/me" || path == "profiles/me/creator" || path == "profiles/me/brand" ||
             (path.startsWith("social-accounts/") && !path.endsWith("/callback")) ||
             path == "campaigns" || path.startsWith("campaigns/") || path.startsWith("applications/")
     }

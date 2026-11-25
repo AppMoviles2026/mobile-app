@@ -15,6 +15,14 @@ internal data class RecoveryDto(val email: String)
 internal data class PasswordResetDto(val token: String, val newPassword: String) {
     override fun toString() = "PasswordResetDto(<redacted>)"
 }
+internal data class BrandProfileDto(
+    val profileId: String?, val businessName: String?, val description: String?,
+    val category: String?, val location: String?, val version: Long?
+)
+internal data class BrandProfileUpdateDto(
+    val businessName: String, val description: String?, val category: String?,
+    val location: String?, val expectedVersion: Long
+)
 internal data class ProfileUpdateDto(val displayName: String, val biography: String?, val niche: String?, val audienceDescription: String?, val location: String?)
 internal data class AccountDto(val accountId: String?, val profileId: String?, val name: String?, val accountType: String?, val status: String?)
 internal data class SessionDto(val account: AccountDto?, val accessToken: String?, val tokenType: String?, val expiresAt: Instant?) {

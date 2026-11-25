@@ -12,6 +12,8 @@ interface IdentityRepository {
     suspend fun requestRecovery(email: String): ApiResult<String>
     suspend fun resetPassword(token: String, newPassword: String): ApiResult<Unit>
     suspend fun currentAccount(): ApiResult<Account>
+    suspend fun brandProfile(): ApiResult<BusinessProfile>
+    suspend fun updateBrandProfile(update: BusinessProfileUpdate): ApiResult<BusinessProfile>
     suspend fun creatorProfile(): ApiResult<CreatorProfile>
     suspend fun updateCreatorProfile(update: CreatorProfileUpdate): ApiResult<CreatorProfile>
     suspend fun authorizeSocialAccount(platform: SocialPlatform): ApiResult<SocialAuthorization>

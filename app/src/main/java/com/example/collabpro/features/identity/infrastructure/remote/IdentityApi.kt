@@ -11,6 +11,10 @@ internal interface IdentityApi {
     @POST("auth/recovery-requests") suspend fun recover(@Body body: RecoveryDto): Response<RecoveryAcceptedDto>
     @POST("auth/password-resets") suspend fun reset(@Body body: PasswordResetDto): Response<Unit>
     @GET("accounts/me") suspend fun account(@Tag session: SessionCredentials): Response<AccountDto>
+    @GET("profiles/me/brand") suspend fun brandProfile(@Tag session: SessionCredentials): Response<BrandProfileDto>
+    @PUT("profiles/me/brand") suspend fun updateBrandProfile(
+        @Tag session: SessionCredentials, @Body body: BrandProfileUpdateDto
+    ): Response<BrandProfileDto>
     @GET("profiles/me/creator") suspend fun profile(@Tag session: SessionCredentials): Response<CreatorProfileDto>
     @PUT("profiles/me/creator") suspend fun updateProfile(@Tag session: SessionCredentials, @Body body: ProfileUpdateDto): Response<CreatorProfileDto>
     @POST("social-accounts/{platform}/authorizations") suspend fun authorize(

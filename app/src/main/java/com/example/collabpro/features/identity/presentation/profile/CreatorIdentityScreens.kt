@@ -51,7 +51,7 @@ fun CreatorProfileScreen(
 }
 
 @Composable
-private fun ProfileField(label: String, value: String, field: String, max: Int, failure: ApiFailure?, enabled: Boolean,
+internal fun ProfileField(label: String, value: String, field: String, max: Int, failure: ApiFailure?, enabled: Boolean,
     multiline: Boolean = false, onChange: (String) -> Unit) {
     val error = failure?.fieldErrors?.get(field)
     OutlinedTextField(value, onChange, Modifier.fillMaxWidth(), label = { Text(label) },
@@ -113,7 +113,7 @@ fun LinkedSocialAccountsScreen(
 private fun SocialPlatform.displayLabel() = when (this) { SocialPlatform.INSTAGRAM -> "Instagram"; SocialPlatform.TIKTOK -> "TikTok" }
 
 @Composable
-private fun IdentityFailureNotice(failure: ApiFailure) {
+internal fun IdentityFailureNotice(failure: ApiFailure) {
     val message = when (failure.code) {
         "PROVIDER_NOT_CONFIGURED" -> "La red social no está configurada en el backend. El administrador debe configurar sus credenciales y URL de retorno."
         "AUTHORIZATION_NOT_FOUND" -> "El intento no existe o pertenece a otra cuenta. Inicia sesión con la cuenta que comenzó la autorización."

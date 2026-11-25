@@ -54,6 +54,8 @@ class RealCreatorIdentityIntegrationTest {
         assertTrue(authentication.signIn(email, password) is ApiResult.Success)
         val initial = (repository.creatorProfile() as ApiResult.Success).value
         assertEquals(sessions.read()!!.account.profileId, initial.profileId)
+        assertEquals(FailureKind.FORBIDDEN, (repository.brandProfile() as ApiResult.Failure).error.kind)
+        assertEquals(FailureKind.FORBIDDEN, (repository.updateBrandProfile(BusinessProfileUpdate("Marca", null, null, null, 0)) as ApiResult.Failure).error.kind)
         val update = CreatorProfileUpdate("Nombre actualizado", "Contenido local", "Gastronomía", "Adultos jóvenes", "Lima")
         val profile = (useCases.updateCreatorProfile(update) as ApiResult.Success).value
         assertEquals(initial.profileId, profile.profileId)
@@ -94,6 +96,21 @@ class RealCreatorIdentityIntegrationTest {
         val brand = "brand-$suffix@example.test"
         assertTrue(repository.registerBrand("Empresa de prueba", brand, password) is ApiResult.Success)
         assertTrue(authentication.signIn(brand, password) is ApiResult.Success)
+        val registered = (useCases.getBrandProfile() as ApiResult.Success).value
+        assertEquals(sessions.read()!!.account.profileId, registered.profileId)
+        assertEquals(0L, registered.version)
+        assertNull(registered.description)
+        val brandUpdate = BusinessProfileUpdate("  Empresa renovada  ", "  Tostaduría  ", "Café", "Lima", registered.version)
+        val savedBrand = (useCases.updateBrandProfile(brandUpdate) as ApiResult.Success).value
+        assertEquals("Empresa renovada", savedBrand.businessName)
+        assertEquals("Tostaduría", savedBrand.description)
+        assertEquals(registered.version + 1, savedBrand.version)
+        assertEquals("CONCURRENT_UPDATE", (useCases.updateBrandProfile(brandUpdate.copy(businessName = "Nombre antiguo")) as ApiResult.Failure).error.code)
+        assertEquals(savedBrand, (useCases.getBrandProfile() as ApiResult.Success).value)
+        assertTrue(authentication.refreshAccount() is ApiResult.Success)
+        assertEquals(savedBrand.businessName, sessions.read()!!.account.name)
+        val cleared = (useCases.updateBrandProfile(brandUpdate.copy(description = " ", expectedVersion = savedBrand.version)) as ApiResult.Success).value
+        assertNull(cleared.description)
         assertEquals(FailureKind.FORBIDDEN, (repository.creatorProfile() as ApiResult.Failure).error.kind)
         assertEquals(FailureKind.FORBIDDEN, (repository.authorizeSocialAccount(SocialPlatform.INSTAGRAM) as ApiResult.Failure).error.kind)
         authentication.signOut()

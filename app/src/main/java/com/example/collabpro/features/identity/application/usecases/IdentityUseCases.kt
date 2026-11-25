@@ -4,6 +4,7 @@ import com.example.collabpro.features.identity.domain.model.*
 import com.example.collabpro.features.identity.domain.repositories.IdentityRepository
 import com.example.collabpro.features.identity.domain.repositories.SessionStore
 import com.example.collabpro.features.identity.application.profile.CreatorProfileValidation
+import com.example.collabpro.features.identity.application.profile.BrandProfileValidation
 import com.example.collabpro.core.domain.ApiResult
 import java.util.UUID
 
@@ -25,6 +26,16 @@ class ResetPassword(private val repository: IdentityRepository) {
 }
 class GetCurrentAccount(private val repository: IdentityRepository) {
     suspend operator fun invoke() = repository.currentAccount()
+}
+class GetBrandProfile(private val repository: IdentityRepository) {
+    suspend operator fun invoke() = repository.brandProfile()
+}
+class UpdateBrandProfile(private val repository: IdentityRepository) {
+    suspend operator fun invoke(update: BusinessProfileUpdate): ApiResult<BusinessProfile> {
+        val normalized = update.normalized()
+        val failure = BrandProfileValidation.validate(normalized)
+        return if (failure == null) repository.updateBrandProfile(normalized) else ApiResult.Failure(failure)
+    }
 }
 class GetCreatorProfile(private val repository: IdentityRepository) {
     suspend operator fun invoke() = repository.creatorProfile()
@@ -61,6 +72,8 @@ class IdentityUseCases(repository: IdentityRepository, store: SessionStore) {
     val requestPasswordRecovery = RequestPasswordRecovery(repository)
     val resetPassword = ResetPassword(repository)
     val getCurrentAccount = GetCurrentAccount(repository)
+    val getBrandProfile = GetBrandProfile(repository)
+    val updateBrandProfile = UpdateBrandProfile(repository)
     val getCreatorProfile = GetCreatorProfile(repository)
     val updateCreatorProfile = UpdateCreatorProfile(repository)
     val startSocialAuthorization = StartSocialAuthorization(repository)

@@ -6,8 +6,6 @@ import androidx.compose.runtime.setValue
 import com.example.collabpro.features.campaign.application.BrowseCampaigns
 import com.example.collabpro.features.campaign.domain.Campaign
 import com.example.collabpro.features.campaign.infrastructure.PreviewCampaigns
-import com.example.collabpro.features.identity.application.LoadProfiles
-import com.example.collabpro.features.identity.infrastructure.PreviewProfiles
 import com.example.collabpro.features.collaboration.application.LoadActiveCollaboration
 import com.example.collabpro.features.collaboration.infrastructure.PreviewCollaborations
 import com.example.collabpro.features.billing.application.LoadBillingPreview
@@ -40,9 +38,6 @@ class AppState(authenticatedAccount: Account? = null) {
     // These fixtures are loaded only when a future prototype/preview asks for them.
     // Connected routes use their server UiStates and never access these properties.
     val campaigns: List<Campaign> by lazy { BrowseCampaigns(PreviewCampaigns)() }
-    private val profiles by lazy { LoadProfiles(PreviewProfiles) }
-    val brandProfile by lazy { profiles.brand() }
-    val creatorProfile by lazy { profiles.creator() }
     val activeCollaboration by lazy { LoadActiveCollaboration(PreviewCollaborations)() }
     private val billing by lazy { LoadBillingPreview(PreviewBilling) }
     val samplePlan by lazy { billing.plan() }

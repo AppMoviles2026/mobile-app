@@ -69,6 +69,8 @@ internal class FakeIdentity : IdentityRepository {
     override suspend fun resetPassword(token: String, newPassword: String): ApiResult<Unit> {
         resetCount++; lastToken = token; lastPassword = newPassword; return resetResult
     }
+    override suspend fun brandProfile(): ApiResult<BusinessProfile> = error("Unexpected brand profile request")
+    override suspend fun updateBrandProfile(update: BusinessProfileUpdate): ApiResult<BusinessProfile> = error("Unexpected brand profile request")
     override suspend fun creatorProfile(): ApiResult<CreatorProfile> = error("Unexpected profile request")
     override suspend fun updateCreatorProfile(update: CreatorProfileUpdate): ApiResult<CreatorProfile> = error("Unexpected profile request")
     override suspend fun authorizeSocialAccount(platform: SocialPlatform): ApiResult<SocialAuthorization> = error("Unexpected OAuth request")

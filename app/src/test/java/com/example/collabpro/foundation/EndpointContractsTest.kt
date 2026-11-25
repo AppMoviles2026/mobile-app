@@ -93,6 +93,25 @@ class EndpointContractsTest {
         assertEquals(11, server.requestCount)
     }
 
+    @Test fun `business profile uses authenticated GET and versioned full PUT`() = runTest {
+        val original = """{"profileId":"$id","businessName":"Ayni Café","version":3}"""
+        val saved = """{"profileId":"$id","businessName":"Ayni Nuevo","category":"Café","location":"Lima","version":4}"""
+        val profile = verify("GET", "profiles/me/brand", original) { identity.brandProfile() }
+        assertEquals(3L, profile.version)
+        assertNull(profile.description)
+        server.enqueue(MockResponse().setBody(saved).setHeader("Content-Type", "application/json"))
+        val result = identity.updateBrandProfile(BusinessProfileUpdate("Ayni Nuevo", null, "Café", "Lima", profile.version))
+        assertEquals(4L, (result as ApiResult.Success).value.version)
+        val request = requireNotNull(server.takeRequest(2, TimeUnit.SECONDS))
+        assertEquals("PUT", request.method)
+        assertEquals("/api/v1/profiles/me/brand", request.path)
+        assertEquals("Bearer test.jwt.token", request.getHeader("Authorization"))
+        val payload = JsonParser.parseString(request.body.readUtf8()).asJsonObject
+        assertEquals(setOf("businessName", "category", "location", "expectedVersion"), payload.keySet())
+        assertEquals(3L, payload["expectedVersion"].asLong)
+        assertEquals("Ayni Nuevo", payload["businessName"].asString)
+    }
+
     @Test fun `all fourteen campaign operations match the backend contract`() = runTest {
         val key = IdempotencyKey()
         val draft = verify("POST", "campaigns", ApiFixtures.draft, code = 201,

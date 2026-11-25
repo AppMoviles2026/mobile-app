@@ -74,19 +74,3 @@ fun RolePickerScreen(app: AppState) {
     }
 }
 
-@Composable
-fun BrandProfileScreen(app: AppState) {
-    var name by remember { mutableStateOf(app.brandProfile.name) }
-    var area by remember { mutableStateOf(app.brandProfile.category) }
-    var location by remember { mutableStateOf(app.brandProfile.location) }
-    var detail by remember { mutableStateOf(app.brandProfile.description) }
-    var saved by remember { mutableStateOf(false) }
-    Page("Perfil de empresa", subtitle = "Esta es la información que verán tus posibles colaboradores.", onBack = app::back) {
-        item { Entry("Nombre comercial", name, { name = it }) }
-        item { Entry("Rubro", area, { area = it }) }
-        item { Entry("Ubicación", location, { location = it }) }
-        item { Entry("Descripción", detail, { detail = it }, singleLine = false) }
-        if (saved) item { Notice("Cambios visibles en esta vista previa.") }
-        item { Action("Guardar perfil") { saved = true } }
-    }
-}

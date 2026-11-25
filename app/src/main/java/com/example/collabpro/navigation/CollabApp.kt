@@ -33,14 +33,14 @@ import com.example.collabpro.features.campaign.application.drafts.PreparationGoa
 import com.example.collabpro.features.performance.presentation.*
 
 @Composable
-fun CollabApp(authentication: AuthenticationViewModel, creatorIdentity: CreatorIdentityViewModel, brandCampaigns: BrandCampaignViewModel, campaignDiscovery: CampaignDiscoveryViewModel, ownApplications: OwnApplicationsViewModel, dashboard: ActivityDashboardViewModel) {
+fun CollabApp(authentication: AuthenticationViewModel, creatorIdentity: CreatorIdentityViewModel, brandCampaigns: BrandCampaignViewModel, campaignDiscovery: CampaignDiscoveryViewModel, ownApplications: OwnApplicationsViewModel, dashboard: ActivityDashboardViewModel, brandProfile: BrandProfileViewModel) {
     Surface(Modifier.fillMaxSize()) {
-        Box(Modifier.fillMaxSize().safeDrawingPadding()) { AuthenticationContent(authentication, creatorIdentity, brandCampaigns, campaignDiscovery, ownApplications, dashboard) }
+        Box(Modifier.fillMaxSize().safeDrawingPadding()) { AuthenticationContent(authentication, creatorIdentity, brandCampaigns, campaignDiscovery, ownApplications, dashboard, brandProfile) }
     }
 }
 
 @Composable
-private fun AuthenticationContent(authentication: AuthenticationViewModel, creatorIdentity: CreatorIdentityViewModel, brandCampaigns: BrandCampaignViewModel, campaignDiscovery: CampaignDiscoveryViewModel, ownApplications: OwnApplicationsViewModel, dashboard: ActivityDashboardViewModel) {
+private fun AuthenticationContent(authentication: AuthenticationViewModel, creatorIdentity: CreatorIdentityViewModel, brandCampaigns: BrandCampaignViewModel, campaignDiscovery: CampaignDiscoveryViewModel, ownApplications: OwnApplicationsViewModel, dashboard: ActivityDashboardViewModel, brandProfile: BrandProfileViewModel) {
     val session by authentication.session.collectAsStateWithLifecycle()
     val ui by authentication.ui.collectAsStateWithLifecycle()
     val identityUi by creatorIdentity.ui.collectAsStateWithLifecycle()
@@ -77,7 +77,7 @@ private fun AuthenticationContent(authentication: AuthenticationViewModel, creat
                 campaignUi.takeIf { it.ownerId == current.account.accountId && it.expiresAt == current.expiresAt } ?: BrandCampaignUiState(), campaignDiscovery,
                 discoveryUi.takeIf { it.ownerId == current.account.accountId && it.expiresAt == current.expiresAt } ?: CampaignDiscoveryUiState(), ownApplications,
                 applicationsUi.takeIf { it.ownerId == current.account.accountId && it.expiresAt == current.expiresAt } ?: OwnApplicationsUiState(), dashboard,
-                dashboardUi.takeIf { it.ownerId == current.account.accountId && it.expiresAt == current.expiresAt } ?: ActivityDashboardUiState())
+                dashboardUi.takeIf { it.ownerId == current.account.accountId && it.expiresAt == current.expiresAt } ?: ActivityDashboardUiState(), brandProfile, current)
         }
     }
 }
@@ -121,7 +121,8 @@ private fun PrivateRoutes(app: AppState, onSignOut: () -> Unit, creatorIdentity:
     brandCampaigns: BrandCampaignViewModel, campaignUi: BrandCampaignUiState,
     campaignDiscovery: CampaignDiscoveryViewModel, discoveryUi: CampaignDiscoveryUiState,
     ownApplications: OwnApplicationsViewModel, applicationsUi: OwnApplicationsUiState,
-    dashboard: ActivityDashboardViewModel, dashboardUi: ActivityDashboardUiState) {
+    dashboard: ActivityDashboardViewModel, dashboardUi: ActivityDashboardUiState,
+    brandProfile: BrandProfileViewModel, session: SessionState.Authenticated) {
     val account = app.authenticatedAccount ?: return
     DisposableEffect(dashboard) { onDispose { dashboard.onShown(false) } }
     LaunchedEffect(app.route, dashboardUi.ownerId, dashboardUi.expiresAt) {
@@ -216,7 +217,7 @@ private fun PrivateRoutes(app: AppState, onSignOut: () -> Unit, creatorIdentity:
                     CreatorOpportunitiesPanel(discoveryUi.opportunities, discoveryUi.now, campaignDiscovery::openDetails,
                         onRetry = { campaignDiscovery.loadOpportunities(force = true) }, onExplore = { app.go(Route.CAMPAIGN_SEARCH) })
                 }
-                Route.BRAND_PROFILE -> BrandAccountScreen(account, app::back)
+                Route.BRAND_PROFILE -> BrandProfileRoute(session, brandProfile, app::back)
                 Route.CREATOR_PROFILE -> CreatorProfileScreen(identityUi.profile, creatorIdentity::editProfile,
                     creatorIdentity::saveProfile, onReload = { creatorIdentity.loadProfile(force = true) },
                     onDiscard = creatorIdentity::discardChanges, onRefreshAccount = creatorIdentity::refreshAccountName,
