@@ -25,7 +25,6 @@ fun HomeScreen(account: Account, onSignOut: () -> Unit = {}, onCampaigns: () -> 
         item { LinkCard(if (brand) "Mis campañas" else "Explorar campañas", if (brand) "Crear, retomar y publicar tus campañas" else "Buscar oportunidades y consultar condiciones", onCampaigns) }
         item { LinkCard(if (brand) "Perfil empresarial" else "Mi perfil", if (brand) "Consultar y editar los datos del negocio" else "Editar perfil y vincular redes", onProfile) }
         if (!brand) item { LinkCard("Mis postulaciones", "Consultar propuestas y gestionar las pendientes", onApplications) }
-        item { Notice("El panel de resultados se encuentra en etapa de prototipo.") }
         item { Action("Cerrar sesión", onSignOut, secondary = true) }
     }
 }

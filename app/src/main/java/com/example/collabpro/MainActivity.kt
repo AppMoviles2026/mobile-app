@@ -21,6 +21,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import kotlinx.coroutines.launch
 import com.example.collabpro.features.billing.presentation.sandbox.SandboxBillingViewModel
+import com.example.collabpro.features.performance.presentation.workspace.PerformanceViewModel
 import com.example.collabpro.navigation.CollabApp
 import com.example.collabpro.ui.theme.CollabProTheme
 import dagger.hilt.android.AndroidEntryPoint
@@ -37,6 +38,7 @@ class MainActivity : ComponentActivity() {
     private val ownApplications: OwnApplicationsViewModel by viewModels()
     private val dashboard: ActivityDashboardViewModel by viewModels()
     private val billing: SandboxBillingViewModel by viewModels()
+    private val performance: PerformanceViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -50,7 +52,7 @@ class MainActivity : ComponentActivity() {
         }
         enableEdgeToEdge()
         setContent {
-            CollabProTheme { CollabApp(authentication, creatorIdentity, brandCampaigns, campaignDiscovery, ownApplications, dashboard, brandProfile, applicants, collaborations, billing) }
+            CollabProTheme { CollabApp(authentication, creatorIdentity, brandCampaigns, campaignDiscovery, ownApplications, dashboard, brandProfile, applicants, collaborations, billing, performance) }
         }
     }
 

@@ -287,7 +287,7 @@ private val previewApplication = Application(UUID.fromString("00000000-0000-0000
 @Composable private fun CompensationPreview() = preview { SandboxBillingSamples.Compensation() }
 
 @Preview(name = "Resultados", showBackground = true, showSystemUi = true)
-@Composable private fun ResultsPreview() = preview { ResultsScreen(AppState()) }
+@Composable private fun ResultsPreview() = preview { ResultsSample() }
 
 @Preview(name = "Historial", showBackground = true, showSystemUi = true)
 @Composable private fun HistoryPreview() = preview { HistoryScreen(AppState()) }

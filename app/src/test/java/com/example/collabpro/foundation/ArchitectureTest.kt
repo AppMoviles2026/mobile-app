@@ -4,6 +4,8 @@ import com.example.collabpro.features.campaign.infrastructure.remote.*
 import com.example.collabpro.features.identity.infrastructure.remote.IdentityApi
 import com.example.collabpro.features.collaboration.infrastructure.remote.CollaborationApi
 import com.example.collabpro.features.billing.infrastructure.remote.BillingApi
+import com.example.collabpro.features.performance.infrastructure.remote.PerformanceApi
+import com.example.collabpro.core.infrastructure.network.ApiConfiguration
 import org.junit.Assert.*
 import org.junit.Test
 import retrofit2.http.*
@@ -26,25 +28,25 @@ class ArchitectureTest {
     }
     @Test fun `retrofit contains exposes the connected mobile initiated operations`() {
         val httpAnnotations = setOf(GET::class.java, POST::class.java, PUT::class.java, PATCH::class.java, DELETE::class.java)
-        val methods = listOf(IdentityApi::class.java, CampaignApi::class.java, ApplicationApi::class.java, ApplicantEvaluationApi::class.java, CollaborationApi::class.java, BillingApi::class.java)
+        val methods = listOf(IdentityApi::class.java, CampaignApi::class.java, ApplicationApi::class.java, ApplicantEvaluationApi::class.java, CollaborationApi::class.java, BillingApi::class.java, PerformanceApi::class.java)
             .flatMap { it.declaredMethods.toList() }
             .filter { method -> method.annotations.any { it.annotationClass.java in httpAnnotations } }
-        assertEquals(77, methods.size)
+        assertEquals(93, methods.size)
         assertFalse(methods.any { it.name == "callback" })
     }
-    @Test fun `future bounded contexts remain prototype only`() {
-        for (context in listOf("performance")) {
-            val files = File(source, "features/$context").walkTopDown().filter { it.isFile && it.extension == "kt" }
-            assertFalse("Future context must not call unsupported APIs: $context", files.any {
-                it.readText().contains("import retrofit2") || it.readText().contains("@HiltViewModel")
-            })
+    @Test fun `performance protects private routes and excludes public tracking`() {
+        val config = ApiConfiguration("https://api.example.test/api/v1/", false)
+        for (path in listOf("performance-evidence/id", "performance-assets/id/content", "attribution/destinations",
+            "attribution/id/interactions", "collaborations/id/metrics", "collaborations/id/attribution")) {
+            assertTrue(path, config.isProtected(config.url.resolve(path)!!))
         }
+        assertFalse(config.isProtected(config.url.resolve("public/attribution/token")!!))
     }
     @Test fun `connected screens cannot import demo repositories or prototype state`() {
         val paths = listOf("features/identity/presentation/HomeScreen.kt", "features/identity/presentation/profile",
             "features/campaign/presentation/manage", "features/campaign/presentation/applicants", "features/campaign/presentation/discovery",
             "features/campaign/presentation/applications", "features/campaign/presentation/dashboard",
-            "features/collaboration/presentation/workspace", "features/billing/presentation/sandbox")
+            "features/collaboration/presentation/workspace", "features/billing/presentation/sandbox", "features/performance/presentation/workspace")
         for (path in paths) for (file in File(source, path).walkTopDown().filter { it.isFile && it.extension == "kt" }) {
             val text = file.readText()
             assertFalse("Prototype dependency in $file", Regex("^import .*?(Preview|AppState|SampleData)", RegexOption.MULTILINE).containsMatchIn(text))
@@ -69,6 +71,6 @@ class ArchitectureTest {
         assertTrue(activity.contains("SocialCustomTabs.open")); assertFalse(activity.contains("startActivity("))
         assertTrue(browser.contains("CustomTabsIntent.Builder()")); assertTrue(browser.contains("trustedBrowserUrl"))
         assertFalse(browser.contains("WebView")); assertFalse(browser.contains("Authorization:"))
-        assertTrue(File(source, "navigation/CollabApp.kt").readText().contains("PROTOTIPO • datos de ejemplo"))
+        assertTrue(File(source, "navigation/CollabApp.kt").readText().contains("PerformanceWorkspace("))
     }
 }

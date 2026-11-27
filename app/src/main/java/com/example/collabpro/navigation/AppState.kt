@@ -8,8 +8,6 @@ import com.example.collabpro.features.campaign.domain.Campaign
 import com.example.collabpro.features.campaign.infrastructure.PreviewCampaigns
 import com.example.collabpro.features.collaboration.application.LoadActiveCollaboration
 import com.example.collabpro.features.collaboration.infrastructure.PreviewCollaborations
-import com.example.collabpro.features.performance.application.LoadResultsPreview
-import com.example.collabpro.features.performance.infrastructure.PreviewResults
 import com.example.collabpro.features.identity.domain.model.Account
 import com.example.collabpro.features.identity.domain.model.AccountType
 import java.util.UUID
@@ -38,7 +36,6 @@ class AppState(authenticatedAccount: Account? = null) {
     // Connected routes use their server UiStates and never access these properties.
     val campaigns: List<Campaign> by lazy { BrowseCampaigns(PreviewCampaigns)() }
     val activeCollaboration by lazy { LoadActiveCollaboration(PreviewCollaborations)() }
-    val sampleMetrics by lazy { LoadResultsPreview(PreviewResults)() }
     var route by mutableStateOf(if (authenticatedAccount == null) Route.WELCOME else if (authenticatedAccount.accountType == AccountType.BRAND) Route.BRAND_HOME else Route.CREATOR_HOME)
         private set
     var role by mutableStateOf(if (authenticatedAccount?.accountType == AccountType.CREATOR) UserRole.CREATOR else UserRole.BRAND)
@@ -47,8 +44,9 @@ class AppState(authenticatedAccount: Account? = null) {
         private set
     var variant by mutableStateOf("")
     var language by mutableStateOf("ES")
-    var compensationCollaborationId by mutableStateOf<UUID?>(null)
-        private set
+    private var collaborationResourceId by mutableStateOf<UUID?>(null)
+    val compensationCollaborationId get() = collaborationResourceId.takeIf { route == Route.COMPENSATION }
+    val resultsCollaborationId get() = collaborationResourceId.takeIf { route == Route.RESULTS }
     private val backStack = mutableListOf<Pair<Route, UUID?>>()
 
     fun go(destination: Route) {
@@ -61,8 +59,8 @@ class AppState(authenticatedAccount: Account? = null) {
         if (authenticatedAccount != null && destination in listOf(Route.BRAND_CAMPAIGNS, Route.CAMPAIGN_FORM, Route.CAMPAIGN_TERMS, Route.APPLICANTS, Route.APPLICANT_DETAIL, Route.PLANS, Route.SUBSCRIPTION) && role != UserRole.BRAND) return
         if (authenticatedAccount != null && destination in listOf(Route.CAMPAIGN_SEARCH, Route.APPLICATION_FORM, Route.MY_APPLICATIONS, Route.APPLICATION_DETAIL) && role != UserRole.CREATOR) return
         if (route == destination) return
-        backStack.add(route to compensationCollaborationId)
-        compensationCollaborationId = null
+        backStack.add(route to collaborationResourceId)
+        collaborationResourceId = null
         variant = ""
         route = destination
     }
@@ -70,12 +68,18 @@ class AppState(authenticatedAccount: Account? = null) {
     fun openCompensation(collaborationId: UUID) {
         if (authenticatedAccount == null) return
         go(Route.COMPENSATION)
-        compensationCollaborationId = collaborationId
+        collaborationResourceId = collaborationId
+    }
+
+    fun openResults(collaborationId: UUID) {
+        if (authenticatedAccount == null) return
+        go(Route.RESULTS)
+        collaborationResourceId = collaborationId
     }
 
     fun back() {
         val previous = backStack.removeLastOrNull()
-        compensationCollaborationId = previous?.second
+        collaborationResourceId = previous?.second
         route = previous?.first
             ?: if (authenticatedAccount == null) Route.WELCOME else if (role == UserRole.BRAND) Route.BRAND_HOME else Route.CREATOR_HOME
         variant = ""

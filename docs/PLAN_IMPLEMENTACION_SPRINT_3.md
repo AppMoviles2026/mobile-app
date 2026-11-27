@@ -56,9 +56,10 @@ Referencias de código: `app/src/main/java/com/example/collabpro/navigation/{Col
 | 6 | Billing | US-26 integrada y retorno financiero reutilizable | Sesión existente |
 | 7 | Billing | US-27 integrada | 6 |
 | 8 | Billing | US-28 integrada | 4, 5 y 6. La suscripción no es un requisito del pago. |
-| 9 | Performance | US-29 nueva | 3 y 4. Enlace histórico del bloque 5. |
+| 9 | Performance | US-29 escenarios 1–3 integrados. Métricas y evidencia manual. | 3 y 4. Enlace histórico del bloque 5. |
+| 10 | Performance | US-29 escenarios 4–5 integrados. Atribución e interpretación. | 9 |
 
-Los bloques 3–5 se entregan juntos como un único commit de Collaboration. Los bloques 6–8 se entregan juntos como un único commit de Billing. Ejecutar los recorridos integrados al cerrar los bloques que los completan, sin reservar un commit para tareas de verificación aisladas.
+Los bloques 3–5 se entregan juntos como un único commit de Collaboration. Los bloques 6–8 se entregan juntos como un único commit de Billing. Los bloques 9–10 comparten el commit de Performance. Ejecutar los recorridos integrados al cerrar los bloques que los completan, sin reservar un commit para tareas de verificación aisladas.
 
 ### 1. Identity · Perfil empresarial
 
@@ -112,7 +113,7 @@ git commit -m "feat(campaign): integrate applicant evaluation and campaign versi
 
 ### 5. Collaboration · Incidencias e historial
 
-**Estado:** integrado. El historial muestra los recursos asociados que informa la API. Las referencias de compensación abren Billing cuando la API informa que existe el recurso. El historial muestra la disponibilidad de resultados para el bloque 9.
+**Estado:** integrado. El historial muestra los recursos asociados que informa la API. Las referencias de compensación abren Billing cuando la API informa que existe el recurso. El historial abre resultados cuando la API informa que existe un reporte de Performance.
 
 **Verificación de los bloques 3–5:** 293 pruebas de Gradle aprobadas con MySQL/Mailpit aislados, sin omisiones. La integración desde los adaptadores de Android recorrió aceptación de ambas partes, reintentos, adjuntos privados, rechazo, incidencia, ampliación bilateral, corrección, aprobación e historial. En el emulador se navegó con la cuenta de prueba desde Colaborar → Historial hasta la colaboración completada y su pieza aprobada en versión 2. Las pruebas instrumentadas compilaron. Las pruebas de dispositivo de los formularios y del selector de documentos quedan separadas del recorrido automatizado de la API.
 
@@ -157,13 +158,23 @@ git commit -m "feat(collaboration): integrate agreements deliveries incidents an
 git commit -m "feat(billing): integrate PayPal Sandbox linking subscriptions and compensation"
 ```
 
-### 9. Performance · Resultados, evidencia y atribución
+### 9. Performance · Métricas y evidencia manual
+
+**Estado (27 de noviembre de 2026).** Integrado. Resultados muestra disponibilidad, origen, periodo, capturas paginadas y evidencias. La actualización usa una versión vigente con enlace directo de TikTok y una cuenta visible para el participante. El creador registra evidencia y la empresa la revisa. Los adjuntos requieren sesión y se guardan mediante el selector de Android.
 
 - **US-29, escenarios 1–2:** datos del reporte bajo `/collaborations/{id}/metrics`, actualización autorizada e historial de capturas. Mostrar fuente, periodo, fecha, permisos y estados vacío, no disponible y desactualizado. Obtener `submissionId` de la versión de entrega y los demás identificadores desde datos reales de cuentas/publicaciones. El creador puede elegir redes vinculadas propias. Para la marca, usar solo los datos autorizados disponibles por postulación asociada u otra representación publicada para participantes. Si falta un identificador legítimo para refrescar, mantener la lectura y el flujo manual, y verificar la brecha de contrato. TikTok necesita `video.list` y video autorizado. Instagram queda en evidencia manual.
 - **US-29, escenario 3:** conectar creación, listado, detalle, archivos privados y revisión empresarial de evidencia en las rutas de Performance. Distinguir evidencia declarada de capturas automáticas, con periodo, observaciones y estado.
+- Contrato `platform/docs/performance-contracts.md`.
+
+### 10. Performance · Atribución e interpretación
+
+**Estado (27 de noviembre de 2026).** Integrado. La empresa gestiona mecanismos y registra consultas o usos de código con evidencia. Ambos roles consultan auditoría, fuentes y periodos, y pueden compartir enlaces públicos o códigos disponibles. Las cifras de demostración tienen sus propios totales.
+
 - **US-29, escenarios 4–5:** consumir destinos aprobados y mecanismos LINK/CODE, compartir el enlace real, consultar interacciones y registrar declaraciones de empresa con evidencia. Mantener `eventId` del mismo hecho. Mostrar periodo y fuente, separar muestras demo y mostrar la advertencia de estimación. Abrir el enlace público sin JWT.
 - **Aceptación:** ambos roles autorizados acceden a su vista correspondiente. Verificar ausencia de métricas sin contadores inventados, evidencia revisada, clic/uso de código registrado y resultado estimado con aviso. El historial abre resultados y compensación solo según referencias/accesos del servidor.
-- Contratos `platform/docs/performance-contracts.md` y `platform/docs/attribution-contracts.md`.
+- Contrato `platform/docs/attribution-contracts.md`.
+
+**Verificación de los bloques 9–10.** Gradle compiló los APK de depuración y de pruebas instrumentadas. Pasaron 306 pruebas con MySQL y Mailpit aislados, sin omisiones. La integración recorrió permisos de participantes, carga y descarga privada, revisión de evidencia, creación de enlaces y códigos, reintentos, deduplicación de clics y exclusión de declaraciones respaldadas por evidencia rechazada. En el emulador se comprobó el acceso de la cuenta creadora a Resultados y sus tres pestañas, incluida la separación de interacciones de demostración. Queda pendiente consultar métricas con una cuenta TikTok externa autorizada.
 
 ```bash
 git commit -m "feat(performance): integrate metrics evidence and attribution"

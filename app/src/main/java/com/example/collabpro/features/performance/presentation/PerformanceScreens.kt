@@ -7,22 +7,27 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import com.example.collabpro.core.designsystem.*
+import com.example.collabpro.features.performance.domain.model.*
+import com.example.collabpro.features.performance.presentation.workspace.AttributionSummary
+import com.example.collabpro.features.performance.presentation.workspace.SnapshotFacts
 import com.example.collabpro.navigation.AppState
 import com.example.collabpro.navigation.Route
 
 @Composable
-fun ResultsScreen(app: AppState) {
-    var mode by remember { mutableStateOf("Disponibles") }
-    Page("Resultados", subtitle = "Consulta cifras verificables y su procedencia.", onBack = app::back) {
-        item { ChoiceRow(listOf("Disponibles", "Sin métricas", "Evidencia", "Atribución"), mode) { mode = it } }
-        when (mode) {
-            "Disponibles" -> {
-                item { Panel("Rendimiento de la publicación") { app.sampleMetrics.forEach { InfoRow(it.label, it.value) }; InfoRow("Fuente", app.sampleMetrics.first().source); InfoRow("Periodo", app.sampleMetrics.first().period) } }
-                item { Notice("Las métricas reflejan el periodo y la fuente indicados; no equivalen directamente a ventas.") }
+fun ResultsSample() {
+    val end = java.time.Instant.parse("2026-11-27T16:00:00Z")
+    val period = Period(end.minusSeconds(86400), end)
+    val id = java.util.UUID(0L, 1L)
+    Page("Resultados", subtitle = "Demostración") {
+        item {
+            Panel("Medición automática") {
+                SnapshotFacts(Snapshot(id, id, "AUTOMATED", "tiktok", "LIFETIME", end, period, mapOf("VIEWS" to 125L)))
             }
-            "Sin métricas" -> item { Panel("Métricas no disponibles") { Text("Esta red social no proporciona métricas autorizadas para esta publicación."); Text("Puedes consultar evidencias manuales si fueron aportadas por el creador.") } }
-            "Evidencia" -> item { Panel("Referencia aportada por creador") { InfoRow("Tipo", "Captura de estadísticas"); InfoRow("Fecha", "25 oct 2026"); InfoRow("Origen", "Evidencia manual"); Text("Esta información no se obtuvo automáticamente y debe revisarse como referencia.") } }
-            else -> item { Panel("Resultados atribuibles") { InfoRow("Enlace/código", "MAKI-CAMILA"); InfoRow("Clics", "93"); InfoRow("Consultas", "14"); InfoRow("Periodo", "18–25 oct 2026"); Text("Estimación: estas acciones no prueban por sí solas compras causadas por la colaboración.") } }
+        }
+        item {
+            AttributionSummary(AttributionReport(id, "NO_INTERACTIONS", period, "EXCLUSIVE", Counts(0, 0, 0), Counts(0, 1, 0),
+                com.example.collabpro.core.domain.Page(emptyList(), 0, 0, 20),
+                mapOf("INQUIRY" to "BRAND_DECLARATION"), "Estimación basada en interacciones registradas."))
         }
     }
 }
