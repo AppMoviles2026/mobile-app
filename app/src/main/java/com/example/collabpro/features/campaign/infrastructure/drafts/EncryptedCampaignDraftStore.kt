@@ -56,5 +56,5 @@ internal class EncryptedCampaignDraftStore(private val storage: CampaignDraftSto
         try { work() } catch (cancelled: CancellationException) { throw cancelled } catch (_: Exception) { storageFailure() }
     } }
     private fun storageFailure() = ApiResult.Failure(ApiFailure(FailureKind.STORAGE,
-        message = "No se pudo guardar o restaurar el borrador local cifrado. Las campañas del servidor siguen disponibles en Mis campañas."))
+        message = "No se pudo recuperar o guardar la edición en este dispositivo. Consulta tus borradores en Mis campañas."))
 }

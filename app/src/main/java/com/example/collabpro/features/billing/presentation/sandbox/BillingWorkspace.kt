@@ -24,10 +24,6 @@ import com.example.collabpro.features.billing.infrastructure.browser.PayPalCusto
 import com.example.collabpro.features.identity.application.auth.SessionState
 import com.example.collabpro.features.identity.domain.model.AccountType
 import java.math.BigDecimal
-import java.time.Instant
-import java.time.ZoneId
-import java.time.format.DateTimeFormatter
-import java.time.format.FormatStyle
 import java.util.UUID
 
 @Composable
@@ -83,7 +79,7 @@ internal fun BillingWorkspace(
                     if (history.items.isEmpty()) item { Text("Aún no hay actividad registrada.") }
                     items(history.items, key = { it.id }) { entry ->
                         Panel(entry.type.billingStatus()) {
-                            InfoRow("Fecha", entry.time.billingDate())
+                            InfoRow("Fecha", entry.time.displayTime())
                             InfoRow("Origen", when (entry.actor) {
                                 null -> "Sistema"
                                 session.account.accountId -> "Tu cuenta"
@@ -201,11 +197,11 @@ internal fun SubscriptionFacts(record: BillingSubscription) {
     record.planName?.let { InfoRow("Plan", it) }
     record.amount?.let { InfoRow("Importe", it.billingAmount(record.currency)) }
     if (record.status != "NONE") InfoRow("Beneficios", if (record.benefitsActive) "Activos" else "Inactivos")
-    record.paidThrough?.let { InfoRow("Pagado hasta", it.billingDate()) }
+    record.paidThrough?.let { InfoRow("Pagado hasta", it.displayTime()) }
     if (record.benefitsActive) record.benefits.forEach { Text("• $it") }
     if (record.status == "APPROVAL_PENDING" || record.status == "CANCEL_PENDING")
-        record.consentExpiresAt?.let { InfoRow("Vence la aprobación", it.billingDate()) }
-    record.lastCheckedAt?.let { InfoRow("Última consulta", it.billingDate()) }
+        record.consentExpiresAt?.let { InfoRow("Vence la aprobación", it.displayTime()) }
+    record.lastCheckedAt?.let { InfoRow("Última consulta", it.displayTime()) }
     record.errorCode?.let { Notice(it.billingReason() ?: it.billingStatus()) }
 }
 
@@ -246,10 +242,10 @@ internal fun CompensationFacts(record: BillingCompensation, onIncidents: (() -> 
         record.description?.let { Text(it) }
         InfoRow("Estado", record.status.billingStatus())
         if (record.paymentApplicable) {
-            InfoRow("Ingreso de empresa", record.fundedAt?.billingDate() ?: record.fundingStatus?.billingStatus() ?: "Sin captura confirmada")
-            InfoRow("Envío al creador", record.paidAt?.billingDate() ?: record.payoutStatus?.billingStatus() ?: "Sin envío confirmado")
+            InfoRow("Ingreso de empresa", record.fundedAt?.displayTime() ?: record.fundingStatus?.billingStatus() ?: "Sin captura confirmada")
+            InfoRow("Envío al creador", record.paidAt?.displayTime() ?: record.payoutStatus?.billingStatus() ?: "Sin envío confirmado")
             if (record.status == "PAYMENT_REVERSED") Notice("El proveedor informó una reversión.")
-            else if (record.wasPaid) Notice("El servidor confirmó el envío al creador.")
+            else if (record.wasPaid) Notice("Envío al creador confirmado.")
         }
         if (record.openIncidentCount > 0) {
             InfoRow("Incidencias abiertas", record.openIncidentCount.toString())
@@ -263,7 +259,7 @@ internal fun CompensationFacts(record: BillingCompensation, onIncidents: (() -> 
 @Composable
 internal fun AuthorizationFacts(record: BillingAuthorization) {
     InfoRow("Estado", record.status.billingStatus())
-    if (!record.terminal) InfoRow("Vence", record.expiresAt.billingDate())
+    if (!record.terminal) InfoRow("Vence", record.expiresAt.displayTime())
     record.errorCode?.let { Notice(it.billingReason() ?: it.billingStatus()) }
 }
 
@@ -271,7 +267,7 @@ internal fun AuthorizationFacts(record: BillingAuthorization) {
 internal fun MethodFacts(method: BillingMethod) {
     InfoRow("Estado", method.status.billingStatus())
     InfoRow("Propósito", if (method.purpose == BillingPurpose.PAYMENT) "Pagar" else "Recibir compensaciones")
-    InfoRow("Vinculado", method.linkedAt.billingDate())
+    InfoRow("Vinculado", method.linkedAt.displayTime())
 }
 
 @Composable
@@ -325,8 +321,6 @@ private fun BillingPagination(page: ResultPage<*>, enabled: Boolean, onPage: (In
 
 private fun BillingMethod.displayName() = maskedLabel?.takeIf(String::isNotBlank) ?: "PayPal · ${methodId.toString().takeLast(6)}"
 
-private val billingDateFormatter = DateTimeFormatter.ofLocalizedDateTime(FormatStyle.SHORT)
-private fun Instant.billingDate() = atZone(ZoneId.systemDefault()).format(billingDateFormatter)
 private fun BigDecimal.billingAmount(currency: String?) = listOfNotNull(currency, toPlainString()).joinToString(" ")
 
 private tailrec fun Context.findActivity(): Activity? = when (this) {

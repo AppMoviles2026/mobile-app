@@ -50,7 +50,7 @@ class AuthenticationSession(
                     if (account.accountId != expected.account.accountId || account.profileId != expected.account.profileId ||
                         account.accountType != expected.account.accountType || account.status != AccountStatus.ACTIVE) {
                         return@withLock ApiResult.Failure(ApiFailure(FailureKind.MALFORMED_RESPONSE,
-                            message = "El servidor devolvió una cuenta diferente a la sesión verificada."))
+                            message = "No se pudo confirmar tu cuenta. Inicia sesión de nuevo."))
                     }
                     if (!candidate.expiresAt.isAfter(clock.instant())) return@withLock changedSession()
                     when (val saved = store.save(candidate.copy(account = account))) {

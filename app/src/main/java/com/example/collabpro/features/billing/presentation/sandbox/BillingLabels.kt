@@ -4,7 +4,7 @@ internal fun String.billingReason(): String? = when (this) {
     "UNSUPPORTED_PAYMENT_CURRENCY" -> "PayPal Sandbox no admite la moneda del acuerdo para este pago."
     "NON_MONETARY_COMPENSATION" -> "El acuerdo establece una compensación no monetaria."
     "COMPENSATION_NOT_ELIGIBLE" -> "La colaboración aún no cumple las condiciones para iniciar el pago."
-    "PROVIDER_NOT_CONFIGURED" -> "PayPal Sandbox no está configurado en el servidor para esta operación."
+    "PROVIDER_NOT_CONFIGURED" -> "Esta opción de PayPal Sandbox no está disponible."
     "PROVIDER_UNAVAILABLE" -> "PayPal Sandbox no respondió. Consulta el estado antes de continuar."
     "CONCURRENT_UPDATE" -> "El estado cambió. Actualiza y revisa el nuevo estado."
     "AUTHORIZATION_EXPIRED" -> "La aprobación venció. Consulta el estado antes de volver a intentarlo."
@@ -13,7 +13,7 @@ internal fun String.billingReason(): String? = when (this) {
     "METHOD_REQUIRED" -> "La operación requiere un medio activo de empresa y, para compensaciones, una cuenta receptora vinculada."
     "PROVIDER_ACCOUNT_MISMATCH", "OWNERSHIP_CONFLICT" -> "La cuenta PayPal Sandbox no coincide con la vinculada."
     "PAYMENT_ALREADY_IN_PROGRESS", "SUBSCRIPTION_EXISTS" -> "Ya hay una operación en curso. Consulta su estado."
-    "RECONCILIATION_REQUIRED" -> "El servidor requiere revisar el resultado con PayPal Sandbox."
+    "RECONCILIATION_REQUIRED" -> "El resultado está pendiente de revisión con PayPal Sandbox."
     else -> null
 }
 

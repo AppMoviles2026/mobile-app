@@ -84,11 +84,11 @@ class BrandProfileViewModel @Inject constructor(
                         BrandProfileDraft.from(latest).update(latest.version)
                     mutableUi.value = when {
                         !previous.dirty || matchesDraft -> savedProfile(
-                            latest, if (previous.needsReload && matchesDraft) "El servidor ya tiene estos cambios." else null
+                            latest, if (previous.needsReload && matchesDraft) "Los cambios ya estaban guardados." else null
                         )
                         latest.version != previous.profile?.version || previous.needsReload ->
                             previous.copy(loading = false, failure = null, notice = null, latestForReview = latest)
-                        else -> previous.copy(loading = false, failure = null, notice = "El perfil del servidor sigue en la misma versión.")
+                        else -> previous.copy(loading = false, failure = null, notice = "El perfil guardado sigue igual.")
                     }
                     refreshNameIfNeeded(account, latest)
                 }
@@ -193,6 +193,6 @@ class BrandProfileViewModel @Inject constructor(
         profile.profileId == account.profileId && (previous == null || profile.version >= previous.version)
 
     private fun invalidProfile() = ApiFailure(
-        FailureKind.MALFORMED_RESPONSE, message = "El servidor devolvió un perfil que no coincide con la cuenta o la versión consultada."
+        FailureKind.MALFORMED_RESPONSE, message = "No se pudo consultar el perfil."
     )
 }

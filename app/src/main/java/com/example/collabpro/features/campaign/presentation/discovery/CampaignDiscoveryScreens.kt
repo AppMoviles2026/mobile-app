@@ -11,8 +11,6 @@ import com.example.collabpro.core.domain.*
 import com.example.collabpro.features.campaign.application.discovery.DiscoveryFilters
 import com.example.collabpro.features.campaign.domain.model.*
 import java.time.Instant
-import java.time.ZoneId
-import java.time.format.DateTimeFormatter
 import java.util.UUID
 
 @Composable
@@ -20,7 +18,7 @@ fun CampaignExploreScreen(state: CampaignDiscoveryUiState, onEdit: (DiscoveryFil
     onSearch: () -> Unit = {}, onClear: () -> Unit = {}, onRetry: () -> Unit = {}, onRefresh: () -> Unit = {},
     onNext: () -> Unit = {}, onPrevious: () -> Unit = {}, onDetail: (UUID) -> Unit = {}, onBack: () -> Unit = {}) {
     val results = state.results
-    Page("Explorar campañas", subtitle = "Oportunidades publicadas que admiten postulaciones. Los filtros se consultan en el servidor.", onBack = onBack) {
+    Page("Explorar campañas", subtitle = "Encuentra campañas que admiten postulaciones.", onBack = onBack) {
         item { Panel("Buscar oportunidades") {
             SearchField("Marca, título u objetivo", state.filters.query, "q", state.filterFailure) { value -> onEdit { copy(query = value) } }
             SearchField("Categoría", state.filters.category, "category", state.filterFailure) { value -> onEdit { copy(category = value) } }
@@ -66,7 +64,7 @@ fun CreatorCampaignDetailScreen(state: DiscoveryDetailUiState, now: Instant, onR
                 InfoRow("Empresa", summary.brandName); InfoRow("Categoría", summary.category)
                 InfoRow("Público objetivo", details.targetAudience); InfoRow("Ubicación", summary.location ?: "No indicada")
             } }
-            item { Panel("Fechas") { InfoRow("Publicación", details.publicationDate.dateText()); InfoRow("Cierre de postulaciones", summary.applicationDeadline.dateText()); Text("Zona horaria: ${ZoneId.systemDefault().id}", style = MaterialTheme.typography.bodySmall) } }
+            item { Panel("Fechas") { InfoRow("Publicación", details.publicationDate.dateText()); InfoRow("Cierre de postulaciones", summary.applicationDeadline.dateText()) } }
             item { Panel("Compensación ofrecida") { CompensationInfo(summary.compensation) } }
             item { Text("Requisitos", style = MaterialTheme.typography.titleLarge); Text("La disponibilidad de la campaña no significa que tu perfil ya haya sido aprobado. Las reglas se verificarán al postular.") }
             items(details.requirements, key = { "requirement-${it.id}" }) { requirement -> Panel(if (requirement.mandatory) "Requisito obligatorio" else "Requisito opcional") {
@@ -92,7 +90,7 @@ fun CreatorOpportunitiesPanel(state: DiscoveryPageUiState, now: Instant, onDetai
         if (state.loading) { LinearProgressIndicator(Modifier.fillMaxWidth()); Text("Consultando oportunidades…") }
         state.failure?.let { DiscoveryError(it); Action("Reintentar oportunidades", onRetry, secondary = true, enabled = !state.loading) }
         state.page?.let { page ->
-            Text("${page.total} campañas disponibles en el servidor.")
+            Text("${page.total} campañas disponibles.")
             if (page.items.isEmpty() && !state.loading) Text("Todavía no hay campañas disponibles.")
             page.items.forEach { CampaignOpportunity(it, now, onDetail, stale = state.loading) }
         }
@@ -130,7 +128,7 @@ fun CreatorOpportunitiesPanel(state: DiscoveryPageUiState, now: Instant, onDetai
 @Composable private fun DiscoveryError(error: ApiFailure) {
     Surface(color = MaterialTheme.colorScheme.errorContainer) { Text(error.message, Modifier.fillMaxWidth().padding(14.dp), color = MaterialTheme.colorScheme.onErrorContainer) }
 }
-private fun Instant?.dateText(): String = this?.atZone(ZoneId.systemDefault())?.format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss")) ?: "No informada"
+private fun Instant?.dateText(): String = this?.displayTime() ?: "No informada"
 private fun CampaignStatus.text() = when (this) { CampaignStatus.DRAFT -> "Borrador"; CampaignStatus.OPEN -> "Publicada"; CampaignStatus.CLOSED -> "Cerrada"; CampaignStatus.CANCELLED -> "Cancelada" }
 private fun CompensationType.text() = when (this) { CompensationType.CASH -> "Dinero"; CompensationType.PRODUCT -> "Producto"; CompensationType.SERVICE -> "Servicio"; CompensationType.CREDIT -> "Crédito"; CompensationType.BARTER -> "Canje" }
 private fun RequirementRule.text() = when (this) { RequirementRule.MANUAL_CONFIRMATION -> "Confirmación manual al postular"; RequirementRule.NICHE_EQUALS -> "Nicho del perfil del creador"; RequirementRule.LOCATION_EQUALS -> "Ubicación del perfil del creador"; RequirementRule.AUTHORIZED_PLATFORM -> "Red social autorizada" }
@@ -140,5 +138,5 @@ private fun CampaignAvailability.text() = when (this) {
     CampaignAvailability.CLOSED -> "Esta campaña está cerrada y no admite nuevas postulaciones."
     CampaignAvailability.CANCELLED -> "Esta campaña fue cancelada y no admite nuevas postulaciones."
     CampaignAvailability.UNPUBLISHED -> "Esta campaña no está publicada."
-    CampaignAvailability.NOT_ACCEPTING -> "El servidor indica que esta campaña no admite nuevas postulaciones."
+    CampaignAvailability.NOT_ACCEPTING -> "Esta campaña ya no admite postulaciones."
 }

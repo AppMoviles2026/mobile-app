@@ -15,7 +15,7 @@ import java.util.UUID
 @Composable
 fun OwnApplicationsScreen(state: OwnApplicationsListUiState, onDetail: (UUID) -> Unit = {}, onRetry: () -> Unit = {},
     onNext: () -> Unit = {}, onPrevious: () -> Unit = {}, onExplore: () -> Unit = {}, onBack: () -> Unit = {}) {
-    Page("Mis postulaciones", subtitle = "Propuestas y estados consultados en el servidor.", onBack = onBack) {
+    Page("Mis postulaciones", subtitle = "Consulta el estado de tus propuestas.", onBack = onBack) {
         if (state.loading) item { LinearProgressIndicator(Modifier.fillMaxWidth()); Text("Consultando postulaciones…") }
         state.failure?.let { item { ApplicationError(it); Action("Reintentar consulta", onRetry, enabled = !state.loading) } }
         state.page?.let { page ->
@@ -25,7 +25,7 @@ fun OwnApplicationsScreen(state: OwnApplicationsListUiState, onDetail: (UUID) ->
             } }
             items(page.items, key = { it.id }) { application -> Panel(application.campaignTitle) {
                 Text(application.brandName); Status(application.status.label()); Text(application.message)
-                InfoRow("Enviada", application.submittedAt.toString()); InfoRow("Versión", application.version.toString())
+                InfoRow("Enviada", application.submittedAt.displayTime())
                 Action("Consultar postulación", { onDetail(application.id) }, secondary = true, enabled = !state.loading)
             } }
             item { Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -43,25 +43,25 @@ fun OwnApplicationFormScreen(state: OwnApplicationFormUiState, now: Instant, onM
     onConfirm: (UUID, Boolean) -> Unit = { _, _ -> }, onSubmit: () -> Unit = {}, onSave: () -> Unit = {}, onVerify: () -> Unit = {},
     onResolve: (Boolean) -> Unit = {}, onList: () -> Unit = {}, onBack: () -> Unit = {}) {
     var resolution by remember(state.campaignId, state.latest) { mutableStateOf<Boolean?>(null) }
-    resolution?.let { keep -> AlertDialog(onDismissRequest = { resolution = null }, title = { Text(if (keep) "¿Conservar tu propuesta?" else "¿Usar la propuesta del servidor?") },
-        text = { Text(if (keep) "Se usará la versión mostrada del servidor como base. Tu texto no se enviará automáticamente; revísalo y luego guarda."
-            else "Tu texto local será reemplazado por la propuesta mostrada del servidor.") },
+    resolution?.let { keep -> AlertDialog(onDismissRequest = { resolution = null }, title = { Text(if (keep) "¿Conservar tu propuesta?" else "¿Usar la propuesta guardada?") },
+        text = { Text(if (keep) "Tu texto seguirá en el formulario. Revísalo y guarda cuando esté listo."
+            else "Se reemplazará tu edición por la propuesta guardada.") },
         confirmButton = { TextButton({ resolution = null; onResolve(keep) }) { Text("Confirmar") } }, dismissButton = { TextButton({ resolution = null }) { Text("Volver") } }) }
     Page(if (state.application == null) "Postular a campaña" else "Mi propuesta", subtitle = "Solo una postulación por campaña. Las ediciones cambian únicamente el mensaje.", onBack = onBack) {
-        if (state.loading || state.busy) item { LinearProgressIndicator(Modifier.fillMaxWidth()); Text(if (state.busy) "Procesando con el servidor…" else "Consultando campaña y postulación existente…") }
+        if (state.loading || state.busy) item { LinearProgressIndicator(Modifier.fillMaxWidth()); Text(if (state.busy) "Actualizando postulación…" else "Cargando postulación…") }
         state.failure?.let { item { ApplicationError(it) } }; state.notice?.let { item { Notice(it) } }
         item { Panel("Campaña") {
             Text(state.campaign?.summary?.title ?: state.application?.campaignTitle ?: "Pendiente de consulta")
             Text(state.campaign?.summary?.brandName ?: state.application?.brandName.orEmpty())
-            state.campaign?.let { campaign -> Text(campaign.objective); InfoRow("Cierre de postulaciones", campaign.summary.applicationDeadline?.toString() ?: "No informado")
-                Text(if (campaign.summary.availability(now) == CampaignAvailability.AVAILABLE) "Admite postulaciones nuevas." else "No admite postulaciones nuevas. Las propuestas pendientes existentes pueden gestionar su mensaje según el servidor.") }
+            state.campaign?.let { campaign -> Text(campaign.objective); InfoRow("Cierre de postulaciones", campaign.summary.applicationDeadline?.displayTime() ?: "No informado")
+                Text(if (campaign.summary.availability(now) == CampaignAvailability.AVAILABLE) "Admite postulaciones nuevas." else "Esta campaña ya no admite postulaciones nuevas.") }
         } }
         state.application?.let { application -> item { Panel("Propuesta registrada") {
-            Status(application.status.label()); Text(application.message); InfoRow("Versión consultada", application.version.toString())
+            Status(application.status.label()); Text(application.message)
             Text("Las confirmaciones del envío original no cambian al editar.", style = MaterialTheme.typography.bodySmall)
         } } }
         item { OutlinedTextField(state.proposal.message, onMessage, Modifier.fillMaxWidth(), enabled = !state.locked,
-            label = { Text(if (state.application == null) "Tu propuesta" else "Mensaje local de tu propuesta") }, minLines = 4,
+            label = { Text(if (state.application == null) "Tu propuesta" else "Tu propuesta") }, minLines = 4,
             isError = state.failure?.fieldErrors?.containsKey("message") == true, supportingText = {
                 Text(state.failure?.fieldErrors?.get("message") ?: "${state.proposal.message.length}/4000")
             }) }
@@ -71,7 +71,7 @@ fun OwnApplicationFormScreen(state: OwnApplicationFormUiState, now: Instant, onM
                 if (requirement.ruleType == RequirementRule.MANUAL_CONFIRMATION) Row {
                     Checkbox(requirement.id in state.proposal.confirmations, { onConfirm(requirement.id, it) }, enabled = !state.locked)
                     Text("Confirmo que puedo cumplir este requisito.", Modifier.weight(1f))
-                } else { Text("El servidor verifica este requisito con tu perfil y redes; no se confirma manualmente."); requirement.expectedValue?.let { InfoRow("Valor requerido", it) } }
+                } else { Text("Se comprueba con tu perfil o tus redes vinculadas."); requirement.expectedValue?.let { InfoRow("Valor requerido", it) } }
                 state.failure?.fieldErrors?.get("requirements.${requirement.id}")?.let { Text(it, color = MaterialTheme.colorScheme.error) }
             } } }
             state.failure?.fieldErrors?.filterKeys { it.startsWith("requirements.") && state.campaign?.requirements?.none { row -> "requirements.${row.id}" == it } != false }
@@ -82,19 +82,22 @@ fun OwnApplicationFormScreen(state: OwnApplicationFormUiState, now: Instant, onM
         } else {
             item { Panel("Confirmaciones originales") {
                 if (state.application.confirmedRequirementIds.isEmpty()) Text("No hubo confirmaciones manuales.")
-                state.application.confirmedRequirementIds.forEach { id -> Text(state.campaign?.requirements?.firstOrNull { it.id == id }?.description ?: id.toString()) }
+                val confirmations = state.application.confirmedRequirementIds
+                val named = state.campaign?.requirements.orEmpty().filter { it.id in confirmations }
+                named.forEach { Text(it.description) }
+                if (named.size < confirmations.size) InfoRow("Total confirmado", confirmations.size.toString())
             } }
             if (!state.readOnly) item { Action("Guardar mensaje", onSave, enabled = !state.locked) }
             else item { Notice("Esta postulación ya no está pendiente. No se permite editarla ni volver a enviarla.") }
         }
-        state.latest?.let { remote -> item { Panel("La versión del servidor cambió") {
-            InfoRow("Versión actual", remote.version.toString()); Status(remote.status.label()); Text(remote.message)
-            Text("Tu mensaje local permanece arriba. Elige cómo resolver el conflicto; no se reintentará con una versión nueva automáticamente.")
-            Action("Usar propuesta del servidor", { resolution = false }, secondary = true, enabled = !state.busy && !state.loading)
+        state.latest?.let { remote -> item { Panel("Propuesta actualizada") {
+            Status(remote.status.label()); Text(remote.message)
+            Text("Compara esta propuesta con tu edición antes de decidir cuál conservar.")
+            Action("Usar propuesta guardada", { resolution = false }, secondary = true, enabled = !state.busy && !state.loading)
             if (remote.status == ApplicationStatus.PENDING) Action("Conservar mi propuesta para editar", { resolution = true }, secondary = true, enabled = !state.busy && !state.loading)
         } } }
-        if (state.submission != null || state.pendingWrite != null) item { Notice("Existe una operación sin confirmar. La propuesta está protegida hasta consultar su resultado; no se simula éxito.") }
-        item { Action("Verificar en el servidor", onVerify, secondary = true, enabled = !state.busy && !state.loading && state.campaignId != null) }
+        if (state.submission != null || state.pendingWrite != null) item { Notice("Comprueba el estado de la postulación antes de volver a enviarla o editarla.") }
+        item { Action("Comprobar estado", onVerify, secondary = true, enabled = !state.busy && !state.loading && state.campaignId != null) }
         item { Action("Mis postulaciones", onList, secondary = true) }
     }
 }
@@ -108,22 +111,21 @@ fun OwnApplicationDetailScreen(state: OwnApplicationDetailUiState, onEdit: () ->
     if (confirmCancel) AlertDialog(onDismissRequest = { confirmCancel = false }, title = { Text("¿Cancelar esta postulación?") },
         text = { Text("Se conservará el registro como cancelado. Los cambios locales sin guardar no se enviarán. No podrás volver a postular a esta campaña.") },
         confirmButton = { TextButton({ confirmCancel = false; onCancel() }) { Text("Cancelar postulación") } }, dismissButton = { TextButton({ confirmCancel = false }) { Text("Volver") } })
-    Page("Detalle de postulación", subtitle = "Estado, propuesta y versión consultados en el servidor.", onBack = onBack) {
-        if (state.loading || state.busy) item { LinearProgressIndicator(Modifier.fillMaxWidth()); Text("Consultando o procesando postulación…") }
+    Page("Detalle de postulación", onBack = onBack) {
+        if (state.loading || state.busy) item { LinearProgressIndicator(Modifier.fillMaxWidth()); Text("Actualizando postulación…") }
         state.failure?.let { item { ApplicationError(it) } }; state.notice?.let { item { Notice(it) } }
         state.application?.let { application ->
             item { Panel(application.campaignTitle) {
                 Text(application.brandName)
                 Status(application.status.label())
-                InfoRow("Enviada", application.submittedAt.toString())
-                application.decidedAt?.let { InfoRow("Decisión", it.toString()) }
+                InfoRow("Enviada", application.submittedAt.displayTime())
+                application.decidedAt?.let { InfoRow("Decisión", it.displayTime()) }
                 application.decisionReason?.let { InfoRow("Motivo", it) }
-                InfoRow("Versión", application.version.toString())
             } }
             item { Panel("Propuesta enviada") { Text(application.message) } }
             item { Panel("Confirmaciones manuales originales") {
                 if (application.confirmedRequirementIds.isEmpty()) Text("Sin confirmaciones manuales.")
-                application.confirmedRequirementIds.forEach { Text(it.toString()) }
+                else InfoRow("Total confirmado", application.confirmedRequirementIds.size.toString())
             } }
             if (application.status == ApplicationStatus.PENDING) {
                 item { Action("Editar propuesta", onEdit, enabled = !state.busy && !state.loading && !state.pendingOperation) }

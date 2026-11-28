@@ -53,12 +53,12 @@ class CampaignPreparation(private val repository: CampaignRepository, private va
             is ApiResult.Success -> result.value
         }
         if (details.summary.id != id || details.summary.brandId != brandId)
-            return failure("El servidor devolvió una campaña diferente.", FailureKind.MALFORMED_RESPONSE)
+            return failure("No se pudo cargar la campaña solicitada.", FailureKind.MALFORMED_RESPONSE)
         if (details.summary.status != CampaignStatus.DRAFT) {
             val confirmed = remember(draft.copy(pending = null), details)
             if (confirmed is ApiResult.Failure) return confirmed
             return if (details.summary.status == CampaignStatus.OPEN) ApiResult.Success(details)
-                else failure("La campaña está ${details.summary.status.name} y no se puede preparar ni publicar.", FailureKind.CONFLICT)
+                else failure("Esta campaña ya no está en borrador.", FailureKind.CONFLICT)
         }
         val basicsMatch = details.matchesBasics(draft.basics.request())
         val sameVersion = details.version != null && details.version == draft.serverVersion
@@ -131,7 +131,7 @@ class CampaignPreparation(private val repository: CampaignRepository, private va
     }
     private fun versionConflict() = ApiResult.Failure(ApiFailure(
         FailureKind.CONFLICT, "CONCURRENT_UPDATE",
-        "El borrador cambió en el servidor o no tiene una versión local. Consulta la versión actual antes de continuar."
+        "Comprueba el estado del borrador antes de continuar. Puede haber cambios recientes."
     ))
     private fun failure(message: String, kind: FailureKind = FailureKind.CONFLICT) = ApiResult.Failure(ApiFailure(kind, message = message))
 }

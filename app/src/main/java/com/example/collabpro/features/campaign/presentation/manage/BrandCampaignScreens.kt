@@ -18,15 +18,15 @@ import java.util.UUID
 fun OwnCampaignsScreen(state: OwnCampaignsUiState, editor: CampaignEditorUiState,
     onPrepare: () -> Unit = {}, onNew: () -> Unit = {}, onOpen: (UUID) -> Unit = {}, onPage: (Int) -> Unit = {}, onBack: () -> Unit = {}) {
     var confirmNew by remember { mutableStateOf(false) }
-    if (confirmNew) Confirmation("¿Comenzar otra preparación?", "La edición local actual se reemplazará. Un borrador ya guardado permanece en el servidor; una creación sin confirmar debe resolverse primero.",
+    if (confirmNew) Confirmation("¿Comenzar otra campaña?", "Perderás los cambios sin guardar. Los borradores guardados estarán en Mis campañas.",
         { confirmNew = false; onNew() }, { confirmNew = false })
-    Page("Mis campañas", subtitle = "Borradores y campañas de tu empresa, consultados en el servidor.", onBack = onBack) {
+    Page("Mis campañas", subtitle = "Borradores y campañas de tu empresa.", onBack = onBack) {
         item { Action("Crear o continuar campaña", onPrepare, enabled = !editor.restoring && !editor.busy && editor.draft != null) }
-        item { Action(if (editor.draft == null) "Restablecer preparación local" else "Comenzar otra campaña", { confirmNew = true }, secondary = true, enabled = !editor.busy && !editor.restoring) }
-        if (editor.localSaving) item { Text("Guardando edición local cifrada…") }
+        item { Action(if (editor.draft == null) "Comenzar una campaña" else "Comenzar otra campaña", { confirmNew = true }, secondary = true, enabled = !editor.busy && !editor.restoring) }
+        if (editor.localSaving) item { Text("Guardando cambios…") }
         editor.storageFailure?.let { item { CampaignError(it) } }
         editor.failure?.let { item { CampaignError(it) } }
-        if (editor.draft?.serverId != null) item { Notice("Tienes una preparación guardada. «Crear o continuar campaña» retoma su UUID, no crea un duplicado.") }
+        if (editor.draft?.serverId != null) item { Notice("Tienes un borrador en curso.") }
         if (state.loading) item { LinearProgressIndicator(Modifier.fillMaxWidth()) }
         state.failure?.let { item { CampaignError(it) } }; state.notice?.let { item { Notice(it) } }
         if (state.page?.items?.isEmpty() == true) item { Notice("No hay campañas en esta página.") }
@@ -49,7 +49,7 @@ fun OwnCampaignsScreen(state: OwnCampaignsUiState, editor: CampaignEditorUiState
 fun CampaignBasicsScreen(state: CampaignEditorUiState, onEdit: (CampaignBasics.() -> CampaignBasics) -> Unit = {},
     onContinue: () -> Unit = {}, onSave: () -> Unit = {}, onCheck: () -> Unit = {}, onBack: () -> Unit = {}, onReload: () -> Unit = {}) {
     var confirmReload by remember { mutableStateOf(false) }
-    if (confirmReload) Confirmation("¿Reemplazar la edición local?", "Se cargará el borrador vigente del servidor.",
+    if (confirmReload) Confirmation("¿Descartar los cambios sin guardar?", "Se cargará el último borrador guardado.",
         { confirmReload = false; onReload() }, { confirmReload = false })
     val draft = state.draft
     val enabled = !state.metadataLocked && !state.busy && !state.restoring
@@ -66,8 +66,8 @@ fun CampaignBasicsScreen(state: CampaignEditorUiState, onEdit: (CampaignBasics.(
             item { Action("Continuar a condiciones", onContinue, enabled = !state.busy && !state.restoring) }
             item { Action(if (state.busy) "Procesando…" else "Guardar borrador", onSave, secondary = true, enabled = !state.busy && !state.readOnly && !state.restoring) }
             if (draft.serverId != null) {
-                item { Action("Comprobar estado en el servidor", onCheck, secondary = true, enabled = !state.busy) }
-                item { Action("Cargar borrador del servidor", { confirmReload = true }, secondary = true, enabled = !state.busy) }
+                item { Action("Comprobar estado", onCheck, secondary = true, enabled = !state.busy) }
+                item { Action("Cargar borrador guardado", { confirmReload = true }, secondary = true, enabled = !state.busy) }
             }
         }
     }
@@ -79,9 +79,9 @@ fun CampaignConditionsScreen(state: CampaignEditorUiState, onEdit: (ConditionsDr
     onCheck: () -> Unit = {}, onReload: () -> Unit = {}, onList: () -> Unit = {}, onBack: () -> Unit = {}) {
     var confirmReload by remember { mutableStateOf(false) }
     var confirmPublish by remember { mutableStateOf(false) }
-    if (confirmReload) Confirmation("¿Reemplazar la edición local?", "Se cargarán las condiciones guardadas en el servidor. Los cambios locales sin guardar se perderán.",
+    if (confirmReload) Confirmation("¿Descartar los cambios sin guardar?", "Se cargarán las condiciones guardadas. Perderás los cambios sin guardar.",
         { confirmReload = false; onReload() }, { confirmReload = false })
-    if (confirmPublish) Confirmation("¿Publicar esta campaña?", "Se guardarán las condiciones válidas y la campaña será visible para creadores. Después ya no se podrán editar sus condiciones en esta versión.",
+    if (confirmPublish) Confirmation("¿Publicar esta campaña?", "Se guardarán las condiciones válidas y la campaña será visible para creadores. Después de publicar, las condiciones quedarán fijas.",
         { confirmPublish = false; onPublish() }, { confirmPublish = false })
     val terms = state.draft?.conditions
     val enabled = !state.conditionsLocked
@@ -122,8 +122,8 @@ fun CampaignConditionsScreen(state: CampaignEditorUiState, onEdit: (ConditionsDr
                 item { Action("Publicar campaña", { confirmPublish = true }, enabled = !state.busy && !state.restoring) }
             }
             if (state.draft.serverId != null) {
-                item { Action("Comprobar estado en el servidor", onCheck, secondary = true, enabled = !state.busy) }
-                item { Action("Recargar condiciones del servidor", { confirmReload = true }, secondary = true, enabled = !state.busy) }
+                item { Action("Comprobar estado", onCheck, secondary = true, enabled = !state.busy) }
+                item { Action("Cargar condiciones guardadas", { confirmReload = true }, secondary = true, enabled = !state.busy) }
             }
         }
         item { Action("Mis campañas", onList, secondary = true) }
@@ -135,11 +135,11 @@ fun OwnedCampaignDetailScreen(state: OwnedCampaignDetailUiState, onRetry: () -> 
     onDiscard: () -> Unit = {}, onClose: () -> Unit = {}, onBack: () -> Unit = {}, onApplicants: () -> Unit = {}) {
     var confirm by remember { mutableStateOf("") }
     if (confirm.isNotBlank()) Confirmation(if (confirm == "discard") "¿Eliminar este borrador?" else if (confirm == "edit") "¿Retomar este borrador?" else "¿Cerrar postulaciones?",
-        if (confirm == "discard") "Se eliminará permanentemente del servidor. Solo está permitido para borradores."
-        else if (confirm == "edit") "Si estabas preparando otra campaña, su edición local será reemplazada. Las campañas guardadas en el servidor se conservan."
+        if (confirm == "discard") "El borrador se eliminará de forma permanente."
+        else if (confirm == "edit") "Perderás los cambios sin guardar de la campaña que estabas editando."
         else "No se recibirán nuevas postulaciones. La campaña y sus postulaciones existentes se conservarán.",
         { val action = confirm; confirm = ""; if (action == "discard") onDiscard() else if (action == "edit") onEdit() else onClose() }, { confirm = "" })
-    Page(state.details?.summary?.title ?: "Detalle de campaña", subtitle = "Información real de tu campaña.", onBack = onBack) {
+    Page(state.details?.summary?.title ?: "Detalle de campaña", onBack = onBack) {
         if (state.loading || state.busy) item { LinearProgressIndicator(Modifier.fillMaxWidth()) }
         state.failure?.let { item { CampaignError(it) } }; state.notice?.let { item { Notice(it) } }
         state.details?.let { details ->
@@ -148,12 +148,12 @@ fun OwnedCampaignDetailScreen(state: OwnedCampaignDetailUiState, onRetry: () -> 
                 item { Action("Ver postulaciones", onApplicants, enabled = !state.busy && !state.loading) }
             item { Panel("Información") { Text(details.objective); details.description?.let { Text(it) }; InfoRow("Categoría", details.summary.category); InfoRow("Audiencia", details.targetAudience); InfoRow("Ubicación", details.summary.location ?: "No indicada") } }
             item { Panel("Fechas y oferta") {
-                Text("Cierre de postulaciones: ${details.summary.applicationDeadline ?: "Sin definir"}")
-                Text("Publicación: ${details.publicationDate ?: "No publicada"}")
+                Text("Cierre de postulaciones: ${details.summary.applicationDeadline?.displayTime() ?: "Sin definir"}")
+                Text("Publicación: ${details.publicationDate?.displayTime() ?: "No publicada"}")
                 details.summary.compensation?.let { Text(it.type.label()); Text(it.description); if (it.type == CompensationType.CASH) Text("${it.amount?.toPlainString()} ${it.currency}") } ?: Text("Compensación sin definir")
             } }
             items(details.requirements, key = { "r-${it.id}" }) { requirement -> Panel("Requisito ${if (requirement.mandatory) "obligatorio" else "opcional"}") { Text(requirement.description); Text(requirement.ruleType.label()); requirement.expectedValue?.let { Text(it) } } }
-            items(details.deliverables, key = { "d-${it.id}" }) { deliverable -> Panel(deliverable.contentType) { Text(deliverable.description); Text("Cantidad: ${deliverable.quantity}"); Text("Entrega: ${deliverable.deadline}") } }
+            items(details.deliverables, key = { "d-${it.id}" }) { deliverable -> Panel(deliverable.contentType) { Text(deliverable.description); Text("Cantidad: ${deliverable.quantity}"); Text("Entrega: ${deliverable.deadline.displayTime()}") } }
             if (details.summary.status == CampaignStatus.DRAFT) {
                 item { Action("Retomar condiciones del borrador", { confirm = "edit" }, enabled = !state.busy && !state.loading) }
                 item { Action("Eliminar borrador", { confirm = "discard" }, secondary = true, enabled = !state.busy && !state.loading) }
@@ -164,12 +164,11 @@ fun OwnedCampaignDetailScreen(state: OwnedCampaignDetailUiState, onRetry: () -> 
 }
 
 @Composable private fun EditorFeedback(state: CampaignEditorUiState) {
-    if (state.restoring || state.busy) { LinearProgressIndicator(Modifier.fillMaxWidth()); Text(if (state.restoring) "Restaurando preparación…" else "Procesando con el servidor…") }
-    if (state.localSaving) Text("Guardando edición local cifrada…")
+    if (state.restoring || state.busy) { LinearProgressIndicator(Modifier.fillMaxWidth()); Text(if (state.restoring) "Cargando borrador…" else "Actualizando campaña…") }
+    if (state.localSaving) Text("Guardando cambios…")
     state.storageFailure?.let { CampaignError(it) }; state.failure?.let { CampaignError(it) }; state.notice?.let { Notice(it) }
-    state.draft?.serverId?.let { Text("Campaña: $it", style = MaterialTheme.typography.labelSmall) }
     state.details?.let { Status(it.summary.status.label()) }
-    if (state.draft?.pending != null) Notice("Hay una operación sin confirmar (${state.draft.pending.name}). Reintenta o comprueba el servidor; tus datos y el UUID se conservan.")
+    if (state.draft?.pending != null) Notice("Comprueba el estado de la campaña antes de volver a guardar. Conservamos tus cambios.")
 }
 @Composable private fun CampaignField(label: String, value: String, field: String, failure: ApiFailure?, enabled: Boolean,
     max: Int? = null, multiline: Boolean = false, keyboard: KeyboardType = KeyboardType.Text, onChange: (String) -> Unit) {

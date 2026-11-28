@@ -107,7 +107,6 @@ private fun PublicRoutes(app: AppState, ui: AuthenticationUiState, notice: Strin
         Route.ABOUT_CREATOR -> AboutScreen(app, false)
         Route.HOW_BRAND -> HowScreen(app, true)
         Route.HOW_CREATOR -> HowScreen(app, false)
-        Route.CONTACT -> ContactScreen(app)
         Route.ROLE_PICK -> RolePickerScreen(app)
         Route.REGISTER_BRAND, Route.REGISTER_CREATOR -> RegisterScreen(ui.registration,
             authentication::registrationName, authentication::registrationEmail, authentication::registrationPassword,
@@ -230,9 +229,9 @@ private fun PrivateRoutes(app: AppState, onSignOut: () -> Unit, creatorIdentity:
     }) { padding ->
         androidx.compose.foundation.layout.Box(Modifier.padding(padding)) {
             when (app.route) {
-                Route.BRAND_HOME -> HomeScreen(account, onSignOut, onCampaigns = { app.go(Route.BRAND_CAMPAIGNS) },
+                Route.BRAND_HOME -> HomeScreen(account, onCampaigns = { app.go(Route.BRAND_CAMPAIGNS) },
                     onProfile = { app.go(Route.BRAND_PROFILE) }, summary = { ActivityDashboardPanel(dashboardUi, dashboard::refresh) }, onBilling = { app.go(Route.PAYMENT_METHODS) })
-                Route.CREATOR_HOME -> HomeScreen(account, onSignOut, onCampaigns = { app.go(Route.CAMPAIGN_SEARCH) },
+                Route.CREATOR_HOME -> HomeScreen(account, onCampaigns = { app.go(Route.CAMPAIGN_SEARCH) },
                     onProfile = { app.go(Route.CREATOR_PROFILE) }, onApplications = { app.go(Route.MY_APPLICATIONS) },
                     summary = { ActivityDashboardPanel(dashboardUi, dashboard::refresh) }, onBilling = { app.go(Route.PAYMENT_METHODS) }) {
                     CreatorOpportunitiesPanel(discoveryUi.opportunities, discoveryUi.now, campaignDiscovery::openDetails,
@@ -295,7 +294,7 @@ private fun PrivateRoutes(app: AppState, onSignOut: () -> Unit, creatorIdentity:
                         })
                 }
                 Route.RESULTS -> app.resultsCollaborationId?.let { PerformanceWorkspace(session, it, performance, app::back) }
-                else -> HomeScreen(account, onSignOut, onCampaigns = { app.go(if (app.role == UserRole.BRAND) Route.BRAND_CAMPAIGNS else Route.CAMPAIGN_SEARCH) },
+                else -> HomeScreen(account, onCampaigns = { app.go(if (app.role == UserRole.BRAND) Route.BRAND_CAMPAIGNS else Route.CAMPAIGN_SEARCH) },
                     onProfile = { app.go(if (app.role == UserRole.BRAND) Route.BRAND_PROFILE else Route.CREATOR_PROFILE) },
                     onApplications = { app.go(Route.MY_APPLICATIONS) }, summary = { ActivityDashboardPanel(dashboardUi, dashboard::refresh) },
                     onBilling = { app.go(Route.PAYMENT_METHODS) })

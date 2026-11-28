@@ -164,7 +164,7 @@ class OwnApplicationsViewModel @Inject constructor(private val applications: App
                 is ApiResult.Failure -> formError(found.error, "No se pudo comprobar si ya postulaste. No se habilita un envío nuevo.")
                 is ApiResult.Success -> if (found.value == null) {
                     if (ui.value.form.application != null) formError(malformed())
-                    else if (ui.value.form.duplicateKnown) formError(ApiFailure(FailureKind.CONFLICT, "APPLICATION_ALREADY_EXISTS", "El servidor ya confirmó una postulación existente. Localízala en Mis postulaciones antes de continuar."))
+                    else if (ui.value.form.duplicateKnown) formError(ApiFailure(FailureKind.CONFLICT, "APPLICATION_ALREADY_EXISTS", "Ya postulaste a esta campaña. Revisa Mis postulaciones."))
                     else setForm(ui.value.form.copy(loading = false, checkedAbsence = true,
                         notice = if (ui.value.form.submission != null) "No se encontró la postulación todavía. Si reintentas, se conservarán la misma clave y los mismos datos." else null))
                 } else {
@@ -218,7 +218,7 @@ class OwnApplicationsViewModel @Inject constructor(private val applications: App
                         formError(malformed(), "El envío podría haberse registrado. Verifica antes de modificar la propuesta.")
                     } else {
                         setForm(ui.value.form.copy(application = remote, proposal = ApplicationProposal(remote.message, remote.confirmedRequirementIds), submission = null,
-                            checkedAbsence = false, busy = false, notice = "Envío confirmado por el servidor."))
+                            checkedAbsence = false, busy = false, notice = "Postulación enviada."))
                         showConfirmed(remote, "Envío confirmado. Actualiza el detalle para consultar su estado actual.")
                         // An idempotent POST replay can contain the original snapshot, not today's status.
                         val current = applications.getDetails(remote.id)
@@ -246,7 +246,7 @@ class OwnApplicationsViewModel @Inject constructor(private val applications: App
     private suspend fun resolveDuplicate(account: Long, creator: UUID, campaign: UUID, failure: ApiFailure) {
         setForm(ui.value.form.copy(checkedAbsence = false, duplicateKnown = true))
         when (val found = findOwn(creator, campaign)) {
-            is ApiResult.Failure -> if (active(account)) formError(found.error, "El servidor indica que ya postulaste. No se pudo localizarla todavía; verifica o abre Mis postulaciones.")
+            is ApiResult.Failure -> if (active(account)) formError(found.error, "Ya postulaste a esta campaña. Actualiza la vista o abre Mis postulaciones.")
             is ApiResult.Success -> if (active(account)) {
                 if (found.value == null) formError(failure, "Ya existe una postulación, pero no se localizó en la consulta. No se enviará una nueva automáticamente.")
                 else {
@@ -287,7 +287,7 @@ class OwnApplicationsViewModel @Inject constructor(private val applications: App
             if (!active(account)) return@launchForOwner
             when (result) {
                 is ApiResult.Success -> if (result.value.belongsTo(creator, intent.original.campaignId, intent.original.id) && intent.isConfirmedBy(result.value)) completeWrite(result.value, intent)
-                    else { formError(malformed(), "No se pudo confirmar el resultado. Verifica el servidor antes de cambiar la propuesta."); setDetailError(malformed()) }
+                    else { formError(malformed(), "Comprueba si se guardó la propuesta antes de volver a editarla."); setDetailError(malformed()) }
                 is ApiResult.Failure -> {
                     val error = result.error
                     val reconcile = error.kind in setOf(FailureKind.NETWORK, FailureKind.TIMEOUT, FailureKind.SERVER, FailureKind.MALFORMED_RESPONSE, FailureKind.CONFLICT)
@@ -305,13 +305,13 @@ class OwnApplicationsViewModel @Inject constructor(private val applications: App
             is ApiResult.Success -> {
                 val remote = response.value
                 if (!remote.belongsTo(creator, intent.original.campaignId, intent.original.id)) { formError(malformed()); setDetailError(malformed()); return }
-                if (intent.isConfirmedBy(remote) && failure?.code != "CONCURRENT_UPDATE") completeWrite(remote, intent, "El resultado fue verificado mediante consulta al servidor.")
+                if (intent.isConfirmedBy(remote) && failure?.code != "CONCURRENT_UPDATE") completeWrite(remote, intent, "Postulación actualizada.")
                 else {
                     val changed = remote != intent.original
                     setForm(ui.value.form.copy(busy = false, pendingWrite = null, latest = remote.takeIf { changed },
-                        failure = failure, notice = if (changed) "La versión del servidor cambió. Compara ambas propuestas; no se sobrescribió tu texto local." else "El servidor conserva la versión original. Puedes reintentar con esa misma versión."))
+                        failure = failure, notice = if (changed) "La propuesta cambió. Compárala con tu edición antes de guardar." else "La propuesta guardada sigue igual. Puedes volver a intentar el cambio."))
                     mutableUi.update { it.copy(detail = OwnApplicationDetailUiState(remote.id, remote, failure = failure,
-                        notice = "Estado consultado en el servidor. La propuesta local se conserva.")) }
+                        notice = "Estado actualizado. Tu edición sigue en el formulario.")) }
                 }
             }
         }
@@ -349,7 +349,7 @@ class OwnApplicationsViewModel @Inject constructor(private val applications: App
         if (!active() || state.busy || state.loading || (keepLocal && remote.status != ApplicationStatus.PENDING)) return
         setForm(state.copy(application = remote, latest = null, pendingWrite = null,
             proposal = ApplicationProposal(if (keepLocal) state.proposal.message else remote.message, remote.confirmedRequirementIds), failure = null,
-            notice = if (keepLocal) "Tu texto se conserva usando la versión ${remote.version} como base. Revísalo antes de guardar." else "Se cargó la propuesta actual del servidor."))
+            notice = if (keepLocal) "Conservamos tu edición. Revísala antes de guardar." else "Se cargó la última propuesta guardada."))
     }
     private fun malformed() = ApiFailure(FailureKind.MALFORMED_RESPONSE, message = "La respuesta de postulaciones no corresponde a tu cuenta o a la operación solicitada.")
 }

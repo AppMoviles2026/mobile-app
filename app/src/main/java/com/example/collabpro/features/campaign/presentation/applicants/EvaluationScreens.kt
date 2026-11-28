@@ -89,8 +89,8 @@ fun EvaluationDetailScreen(state: ApplicantEvaluationState, onRefresh: () -> Uni
             } }
             item { Panel("Propuesta") {
                 Text(application.message)
-                InfoRow("Enviada", application.submittedAt.toString())
-                application.decidedAt?.let { InfoRow("Decisión", it.toString()) }
+                InfoRow("Enviada", application.submittedAt.displayTime())
+                application.decidedAt?.let { InfoRow("Decisión", it.displayTime()) }
                 application.decisionReason?.let { InfoRow("Motivo", it) }
             } }
             state.campaign?.requirements?.takeIf { it.isNotEmpty() }?.let { requirements -> item {

@@ -27,10 +27,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.ByteArrayOutputStream
 import java.io.IOException
-import java.time.Instant
-import java.time.ZoneId
-import java.time.format.DateTimeFormatter
-import java.time.format.FormatStyle
 import java.util.UUID
 
 @Composable
@@ -109,13 +105,13 @@ internal fun PerformanceWorkspace(session: SessionState.Authenticated, id: UUID,
         }
         if (state.busy) item { LinearProgressIndicator(Modifier.fillMaxWidth()) }
         if (owned != null && owned.collaboration != id && observed.uncertain) item {
-            Notice("Vuelve al resultado anterior para recuperar la operación pendiente.")
+            Notice("Vuelve a la colaboración anterior para comprobar si se guardó tu último cambio.")
         }
         state.failure?.let { item { Notice(it) } }
         state.notice?.let { item { Notice(it) } }
         if (state.uncertain) item {
-            Notice("La operación pudo haberse registrado. Recupera el intento original antes de enviar otro.")
-            Action("Recuperar operación", model::retry, enabled = !state.busy)
+            Notice("Comprueba si se guardó tu último cambio antes de intentarlo de nuevo.")
+            Action("Comprobar último intento", model::retry, enabled = !state.busy)
         }
         if (state.title != null && !state.writable) item { Notice("Solo consulta. Las operaciones de escritura no están disponibles.") }
         when (state.tab) {
@@ -345,8 +341,6 @@ private fun readEvidenceDocument(context: Context, uri: Uri): Document {
     return Document(name, type, bytes)
 }
 
-private val dates = DateTimeFormatter.ofLocalizedDateTime(FormatStyle.SHORT)
-internal fun Instant.displayTime(): String = atZone(ZoneId.systemDefault()).format(dates)
 internal fun Period.displayPeriod() = "${start.displayTime()} → ${end.displayTime()}"
 
 internal fun String.performanceLabel(): String = when (this) {
@@ -356,7 +350,7 @@ internal fun String.performanceLabel(): String = when (this) {
     "HISTORICAL_ONLY" -> "Solo historial"
     "AUTHORIZATION_REQUIRED" -> "Requiere autorizar la cuenta"
     "INSUFFICIENT_SCOPE" -> "Falta el permiso de lectura de videos"
-    "PROVIDER_NOT_CONFIGURED" -> "Proveedor sin configurar"
+    "PROVIDER_NOT_CONFIGURED" -> "La consulta automática no está disponible"
     "UNSUPPORTED_PROVIDER" -> "Red sin métricas automáticas"
     "RATE_LIMITED" -> "Límite de consultas del proveedor"
     "PROVIDER_UNAVAILABLE" -> "Proveedor no disponible"

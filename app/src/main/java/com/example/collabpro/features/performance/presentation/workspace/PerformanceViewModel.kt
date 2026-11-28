@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.collabpro.core.application.security.ExpectedAccount
 import com.example.collabpro.core.domain.*
+import com.example.collabpro.core.designsystem.displayTime
 import com.example.collabpro.features.campaign.domain.repositories.ApplicantEvaluationRepository
 import com.example.collabpro.features.collaboration.domain.model.CollaborationStatus
 import com.example.collabpro.features.collaboration.domain.model.DeliveryRecord
@@ -200,7 +201,7 @@ class PerformanceViewModel @Inject constructor(
     }
 
     private fun DeliveryRecord.submissionOption() = SubmissionOption(currentSubmission.id,
-        "Pieza $pieceNumber · versión ${currentSubmission.revision} · ${currentSubmission.submittedAt}",
+        "Pieza $pieceNumber · versión ${currentSubmission.revision} · ${currentSubmission.submittedAt.displayTime()}",
         PerformanceInputs.videoId(currentSubmission.content.content.url))
 
     internal fun refreshMetrics(social: SocialOption, submission: SubmissionOption) {

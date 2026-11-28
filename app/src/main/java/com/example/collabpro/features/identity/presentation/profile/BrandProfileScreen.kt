@@ -57,16 +57,16 @@ fun BrandProfileScreen(
         }
         state.latestForReview?.let { latest ->
             item {
-                Panel("Versión actual del servidor") {
+                Panel("Perfil guardado") {
                     InfoRow("Nombre comercial", latest.businessName)
                     InfoRow("Descripción", latest.description ?: "Sin descripción")
                     InfoRow("Categoría", latest.category ?: "Sin categoría")
                     InfoRow("Ubicación", latest.location ?: "Sin ubicación")
                 }
             }
-            item { Notice("Puedes aplicar tus ediciones a esta versión o usar el perfil del servidor.") }
+            item { Notice("Elige si quieres conservar tu edición o usar el perfil guardado.") }
             item { Action("Conservar mis ediciones", { onReview(true) }, enabled = !state.busy) }
-            item { Action("Usar perfil del servidor", { onReview(false) }, secondary = true, enabled = !state.busy) }
+            item { Action("Usar perfil guardado", { onReview(false) }, secondary = true, enabled = !state.busy) }
         }
         state.draft?.let { draft ->
             item {
@@ -94,7 +94,7 @@ fun BrandProfileScreen(
         }
         if (!state.loading) item {
             Action(
-                if (state.profile == null) "Reintentar carga" else "Consultar versión del servidor",
+                if (state.profile == null) "Reintentar carga" else "Actualizar perfil",
                 onReload, secondary = true, enabled = !state.busy
             )
         }

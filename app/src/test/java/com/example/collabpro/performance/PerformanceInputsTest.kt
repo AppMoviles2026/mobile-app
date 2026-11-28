@@ -4,6 +4,7 @@ import com.example.collabpro.features.performance.application.PerformanceInputs
 import org.junit.Assert.*
 import org.junit.Test
 import java.time.Instant
+import java.time.ZoneId
 
 class PerformanceInputsTest {
     @Test fun `only a direct TikTok link supplies a real post identifier`() {
@@ -21,6 +22,13 @@ class PerformanceInputsTest {
         assertNull(PerformanceInputs.tracking("$url?redirect=https://example.test"))
         assertNull(PerformanceInputs.tracking("$url#fragment"))
         assertNull(PerformanceInputs.tracking(url.replace("/public/", "/private/")))
+    }
+
+    @Test fun `dates accept local entry in the device time zone`() {
+        val lima = ZoneId.of("America/Lima")
+        assertEquals(Instant.parse("2026-11-27T21:34:00Z"), PerformanceInputs.instant("27/11/2026 16:34", lima))
+        assertEquals(Instant.parse("2026-11-27T21:34:15Z"), PerformanceInputs.instant("27/11/2026 16:34:15", lima))
+        assertNull(PerformanceInputs.instant("31/02/2026 16:34", lima))
     }
 
     @Test fun `period must have both bounds ordered and no later than observation`() {

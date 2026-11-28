@@ -56,7 +56,7 @@ class ApiExecutor(
     private suspend fun <D, T> execute(
         credentials: SessionCredentials?, call: suspend () -> Response<D>, map: (Response<D>) -> T
     ): ApiResult<T> = withContext(Dispatchers.IO) {
-        if (!configuration.isConfigured) return@withContext failure(FailureKind.CONFIGURATION, "Configura la URL HTTPS del backend.")
+        if (!configuration.isConfigured) return@withContext failure(FailureKind.CONFIGURATION, "El servicio no está disponible en este momento.")
         try {
             val response = call()
             if (credentials != null && !sessions.isCurrent(credentials)) {
@@ -73,18 +73,18 @@ class ApiExecutor(
         } catch (_: SessionChangedException) {
             failure(FailureKind.SESSION_CHANGED, "La sesión cambió antes de completar la solicitud.")
         } catch (_: UntrustedRequestException) {
-            failure(FailureKind.CONFIGURATION, "La solicitud no pertenece al backend configurado.")
+            failure(FailureKind.CONFIGURATION, "No se pudo conectar con CollabPro.")
         } catch (_: SocketTimeoutException) {
-            failure(FailureKind.TIMEOUT, "La solicitud tardó demasiado. Su resultado podría requerir verificación.")
+            failure(FailureKind.TIMEOUT, "La conexión tardó demasiado. Comprueba si se completó antes de volver a intentarlo.")
         } catch (_: IOException) {
-            failure(FailureKind.NETWORK, "No se pudo conectar con el servidor.")
+            failure(FailureKind.NETWORK, "No se pudo conectar con CollabPro. Revisa tu conexión.")
         } catch (_: JsonParseException) {
-            failure(FailureKind.MALFORMED_RESPONSE, "El servidor devolvió datos no válidos.")
+            failure(FailureKind.MALFORMED_RESPONSE, "No pudimos leer la información. Inténtalo de nuevo.")
         } catch (_: IllegalArgumentException) {
-            failure(FailureKind.MALFORMED_RESPONSE, "El servidor devolvió datos no válidos.")
+            failure(FailureKind.MALFORMED_RESPONSE, "No pudimos leer la información. Inténtalo de nuevo.")
         } catch (_: NullPointerException) {
             // A null element in a Gson collection must not become an empty list or crash a screen.
-            failure(FailureKind.MALFORMED_RESPONSE, "El servidor devolvió datos incompletos.")
+            failure(FailureKind.MALFORMED_RESPONSE, "No pudimos leer la información. Inténtalo de nuevo.")
         }
     }
 
@@ -102,7 +102,13 @@ class ApiExecutor(
             502, 503 -> FailureKind.PROVIDER_UNAVAILABLE
             else -> FailureKind.SERVER
         }
-        return ApiFailure(kind, body?.code, body?.message ?: "No se pudo completar la solicitud.",
+        val message = when {
+            body?.code == "PROVIDER_NOT_CONFIGURED" -> "Esta opción no está disponible en este momento."
+            kind == FailureKind.PROVIDER_UNAVAILABLE -> "Esta opción no está disponible por ahora. Inténtalo más tarde."
+            kind == FailureKind.SERVER && response.code() >= 500 -> "No pudimos completar la acción. Inténtalo más tarde."
+            else -> body?.message ?: "No pudimos completar la acción."
+        }
+        return ApiFailure(kind, body?.code, message,
             body?.fieldErrors.orEmpty(), response.code())
     }
 

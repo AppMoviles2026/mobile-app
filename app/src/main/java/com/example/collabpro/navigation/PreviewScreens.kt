@@ -11,6 +11,7 @@ import com.example.collabpro.features.identity.domain.model.AccountType
 import com.example.collabpro.features.identity.domain.model.*
 import com.example.collabpro.features.identity.presentation.profile.*
 import com.example.collabpro.core.domain.*
+import com.example.collabpro.core.designsystem.*
 import java.util.UUID
 import com.example.collabpro.features.campaign.presentation.manage.*
 import com.example.collabpro.features.campaign.presentation.discovery.*
@@ -42,7 +43,14 @@ import com.example.collabpro.ui.theme.CollabProTheme
 @Composable private fun HowCreatorPreview() = preview { HowScreen(AppState(), false) }
 
 @Preview(name = "Contacto", showBackground = true, showSystemUi = true)
-@Composable private fun ContactPreview() = preview { ContactScreen(AppState()) }
+@Composable private fun ContactPreview() = preview {
+    Page("Hablemos") {
+        item { Entry("Nombre", "", {}) }
+        item { Entry("Correo electrónico", "", {}) }
+        item { Entry("Consulta", "", {}, singleLine = false) }
+        item { Action("Enviar consulta", {}, enabled = false) }
+    }
+}
 
 @Preview(name = "Elegir perfil", showBackground = true, showSystemUi = true)
 @Composable private fun RolePickerPreview() = preview { RolePickerScreen(AppState()) }
@@ -114,7 +122,7 @@ private fun previewAccount(type: AccountType) = Account(UUID.fromString("0000000
 
 @Preview(name = "Perfil • Error de carga", showBackground = true, showSystemUi = true)
 @Composable private fun CreatorProfileErrorPreview() = preview {
-    CreatorProfileScreen(CreatorProfileUiState(failure = ApiFailure(FailureKind.NETWORK, message = "No se pudo conectar con el servidor.")))
+    CreatorProfileScreen(CreatorProfileUiState(failure = ApiFailure(FailureKind.NETWORK, message = "Revisa tu conexión e inténtalo de nuevo.")))
 }
 
 @Preview(name = "Redes • Autorizadas", showBackground = true, showSystemUi = true)
@@ -179,7 +187,7 @@ private val previewSocialAttempt = UUID.fromString("00000000-0000-0000-0000-0000
 
 @Preview(name = "Explorar • Error de conexión", showBackground = true, showSystemUi = true)
 @Composable private fun CampaignSearchErrorPreview() = preview { CampaignExploreScreen(CampaignDiscoveryUiState(
-    results = DiscoveryPageUiState(failure = ApiFailure(FailureKind.NETWORK, message = "No se pudo conectar con el servidor.")))) }
+    results = DiscoveryPageUiState(failure = ApiFailure(FailureKind.NETWORK, message = "Revisa tu conexión e inténtalo de nuevo.")))) }
 
 @Preview(name = "Detalle • No admite postulaciones", showBackground = true, showSystemUi = true)
 @Composable private fun ClosedCampaignPreview() = preview { CreatorCampaignDetailScreen(DiscoveryDetailUiState(
@@ -208,8 +216,8 @@ private val previewCampaign = CampaignDetails(CampaignSummary(UUID.fromString("0
 @Composable private fun ApplicationConflictPreview() = preview { OwnApplicationFormScreen(OwnApplicationFormUiState(
     campaignId = previewCampaign.summary.id, campaign = previewCampaign, application = previewApplication,
     proposal = ApplicationProposal("Mi propuesta local sin guardar", previewApplication.confirmedRequirementIds),
-    latest = previewApplication.copy(message = "Propuesta actual del servidor", version = 2),
-    failure = ApiFailure(FailureKind.CONFLICT, "CONCURRENT_UPDATE", "La versión del servidor cambió.")), Instant.parse("2030-01-01T00:00:00Z")) }
+    latest = previewApplication.copy(message = "Propuesta guardada", version = 2),
+    failure = ApiFailure(FailureKind.CONFLICT, "CONCURRENT_UPDATE", "La propuesta cambió.")), Instant.parse("2030-01-01T00:00:00Z")) }
 
 @Preview(name = "Postulación • Cancelada", showBackground = true, showSystemUi = true)
 @Composable private fun CancelledApplicationPreview() = preview { OwnApplicationDetailScreen(OwnApplicationDetailUiState(
@@ -237,7 +245,7 @@ private val previewApplication = Application(UUID.fromString("00000000-0000-0000
 @Composable private fun PartialCampaignPreview() = preview { CampaignConditionsScreen(CampaignEditorUiState(
     draft = CampaignDraft(serverId = UUID.fromString("00000000-0000-0000-0000-000000000015"), pending = DraftOperation.PUBLISH, step = 2),
     restoring = false, failure = ApiFailure(FailureKind.TIMEOUT, message = "No se pudo confirmar la publicación."),
-    notice = "El borrador y sus condiciones se conservan. Comprueba el servidor antes de repetir.")) }
+    notice = "Comprueba si la campaña se publicó. Conservamos tus cambios.")) }
 
 @Preview(name = "Mis campañas • Error", showBackground = true, showSystemUi = true)
 @Composable private fun OwnCampaignsErrorPreview() = preview { OwnCampaignsScreen(

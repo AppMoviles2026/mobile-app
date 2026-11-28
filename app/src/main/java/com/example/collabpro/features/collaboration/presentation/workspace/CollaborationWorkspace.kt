@@ -102,9 +102,9 @@ internal fun CollaborationWorkspace(session: SessionState.Authenticated, model: 
         if (state.busy) item { LinearProgressIndicator(Modifier.fillMaxWidth()) }
         state.failure?.let { item { Notice(it.message) } }
         state.notice?.let { item { Notice(it) } }
-        if (state.stale) item { Notice("Actualiza este recurso y revisa el estado antes de confirmar de nuevo.") }
+        if (state.stale) item { Notice("Actualiza la vista antes de volver a confirmar.") }
         if (state.uncertain) item {
-            Notice("El servidor no confirmó el resultado. Reintenta la misma operación para recuperarlo.")
+            Notice("No pudimos confirmar el resultado. Consulta el estado antes de volver a intentarlo.")
             Action("Recuperar operación", model::retry, enabled = !state.busy)
             if (target.page !in listOf(PROPOSAL)) Action("Consultar estado", model::refresh, secondary = true, enabled = !state.busy)
         }

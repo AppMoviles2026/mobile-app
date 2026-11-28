@@ -32,10 +32,7 @@ private fun AuthField(label: String, value: String, onChange: (String) -> Unit, 
 @Composable
 private fun Feedback(failure: ApiFailure?, submitting: Boolean) {
     if (failure != null) Notice(failure.message)
-    if (submitting) Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-        CircularProgressIndicator(Modifier.size(22.dp), strokeWidth = 2.dp)
-        Text("Conectando con el servidor…")
-    }
+    if (submitting) CircularProgressIndicator(Modifier.size(22.dp), strokeWidth = 2.dp)
 }
 
 @Composable
@@ -58,7 +55,7 @@ fun RegisterScreen(state: RegistrationUiState, onName: (String) -> Unit = {}, on
 @Composable
 fun LoginScreen(state: LoginUiState, onEmail: (String) -> Unit = {}, onPassword: (String) -> Unit = {},
     onSubmit: () -> Unit = {}, onRecovery: () -> Unit = {}, onRegister: () -> Unit = {}, onBack: () -> Unit = {}) {
-    Page("Bienvenido de nuevo", subtitle = "Accede con tu cuenta. El servidor determinará tu tipo de perfil.", onBack = onBack) {
+    Page("Bienvenido de nuevo", subtitle = "Ingresa tu correo y contraseña.", onBack = onBack) {
         if (state.notice != null) item { Notice(state.notice) }
         item { AuthField("Correo electrónico", state.email, onEmail, !state.submitting, state.failure, "email", email = true) }
         item { AuthField("Contraseña", state.password, onPassword, !state.submitting, state.failure, "password", password = true) }
@@ -88,7 +85,7 @@ fun ResetPasswordScreen(state: ResetPasswordUiState, onPassword: (String) -> Uni
     Page("Nueva contraseña", subtitle = "Restablece el acceso a tu cuenta con el enlace recibido por correo.", onBack = onBack) {
         when {
             state.completed -> {
-                item { Notice("Contraseña actualizada. Tus sesiones anteriores fueron revocadas; inicia sesión de nuevo.") }
+                item { Notice("Contraseña actualizada. Vuelve a iniciar sesión con tu nueva contraseña.") }
                 item { Action("Ir a iniciar sesión", onLogin) }
             }
             !state.linkValid -> {

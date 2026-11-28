@@ -147,13 +147,13 @@ class CreatorIdentityViewModel @Inject constructor(
                         return@launch
                     }
                     mutableUi.update { it.copy(profile = CreatorProfileUiState(profile = result.value,
-                        draft = ProfileDraft.from(result.value), saving = true, notice = "Perfil guardado en el servidor.")) }
+                        draft = ProfileDraft.from(result.value), saving = true, notice = "Perfil guardado.")) }
                     val refreshed = authentication.refreshAccount()
                     if (!current(revision)) return@launch
                     mutableUi.update { it.copy(profile = it.profile.copy(saving = false,
                         accountRefreshFailed = refreshed is ApiResult.Failure,
-                        notice = if (refreshed is ApiResult.Failure) "Perfil guardado. No se pudo actualizar el nombre de la sesión: ${refreshed.error.message}"
-                            else "Perfil guardado en el servidor.")) }
+                        notice = if (refreshed is ApiResult.Failure) "Perfil guardado. El nombre de Inicio se actualizará cuando vuelvas a intentarlo."
+                            else "Perfil guardado.")) }
                 }
             }
         }
@@ -166,7 +166,7 @@ class CreatorIdentityViewModel @Inject constructor(
             val result = authentication.refreshAccount()
             if (!current(revision)) return@launch
             mutableUi.update { it.copy(profile = it.profile.copy(accountRefreshFailed = result is ApiResult.Failure,
-                notice = if (result is ApiResult.Failure) result.error.message else "Nombre de la sesión actualizado.")) }
+                notice = if (result is ApiResult.Failure) result.error.message else "Nombre actualizado en Inicio.")) }
         }
     }
 
@@ -307,12 +307,12 @@ class CreatorIdentityViewModel @Inject constructor(
                         if (attempt.status == AuthorizationStatus.PENDING && index < 2) { delay(1000); return@repeat }
                         val message = when (attempt.status) {
                             AuthorizationStatus.PENDING -> "La autorización sigue pendiente. Si cerraste el navegador, aún no se ha confirmado ningún permiso."
-                            AuthorizationStatus.SUCCEEDED -> "El servidor confirmó la vinculación. Revisa abajo las cuentas actualizadas."
+                            AuthorizationStatus.SUCCEEDED -> "Cuenta vinculada."
                             AuthorizationStatus.EXPIRED -> "La autorización venció. Inicia un nuevo intento."
                             AuthorizationStatus.FAILED -> when (attempt.errorCode) {
                                 "AUTHORIZATION_DENIED" -> "No concediste los permisos necesarios. No se vinculó una cuenta nueva."
                                 "SOCIAL_ACCOUNT_ALREADY_LINKED" -> "Esta cuenta ya está vinculada a tu perfil. No se creó un duplicado."
-                                "PROVIDER_NOT_CONFIGURED" -> "El proveedor no está configurado en el servidor."
+                                "PROVIDER_NOT_CONFIGURED" -> "Esta red social no está disponible para vincular en este momento."
                                 "CREATOR_REQUIRED", "ACCOUNT_NOT_ACTIVE" -> "La cuenta ya no permite completar esta autorización."
                                 else -> "El proveedor no pudo completar la autorización. No se confirmó una vinculación nueva."
                             }
@@ -349,7 +349,7 @@ class CreatorIdentityViewModel @Inject constructor(
         savedState[PENDING_ID] = id.toString()
         if (platform == null) savedState.remove<String>(PENDING_PLATFORM) else savedState[PENDING_PLATFORM] = platform.name
     }
-    private fun malformed() = ApiFailure(FailureKind.MALFORMED_RESPONSE, message = "El servidor devolvió datos que no corresponden a esta cuenta o autorización.")
+    private fun malformed() = ApiFailure(FailureKind.MALFORMED_RESPONSE, message = "No se pudo confirmar la información de la cuenta.")
 
     companion object {
         internal const val PENDING_OWNER = "social.pending.owner"

@@ -1,15 +1,7 @@
 package com.example.collabpro.features.identity.presentation
 
-import androidx.compose.foundation.layout.*
-import androidx.compose.material3.*
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
 import com.example.collabpro.core.designsystem.*
 import com.example.collabpro.navigation.AppState
 import com.example.collabpro.navigation.Route
@@ -24,7 +16,6 @@ fun WelcomeScreen(app: AppState) {
         item { Panel(if (english) "I'm a creator" else "Soy creador de contenido") { Text(if (english) "Discover campaigns and review terms before applying." else "Descubre campañas y conoce las condiciones antes de postular."); Action(if (english) "Explore for creators" else "Descubrir para creadores", { app.go(Route.ABOUT_CREATOR) }, secondary = true) } }
         item { Action(if (english) "Create account" else "Crear cuenta", { app.go(Route.ROLE_PICK) }) }
         item { Action(if (english) "Sign in" else "Ya tengo cuenta", { app.go(Route.LOGIN) }, secondary = true) }
-        item { TextButton(onClick = { app.go(Route.CONTACT) }) { Text(if (english) "Questions? Contact us →" else "¿Tienes preguntas? Contáctanos →") } }
     }
 }
 
@@ -48,20 +39,6 @@ fun HowScreen(app: AppState, brand: Boolean) {
         steps.forEach { (title, detail) -> item { Panel(title) { Text(detail) } } }
         item { Notice(if (english) "Compensation is confirmed after the agreed deliverables are approved." else "La compensación se confirma después de validar los entregables acordados.") }
         item { Action(if (english) "Get started" else "Comenzar", { app.go(if (brand) Route.REGISTER_BRAND else Route.REGISTER_CREATOR) }) }
-    }
-}
-
-@Composable
-fun ContactScreen(app: AppState) {
-    var name by remember { mutableStateOf("") }; var email by remember { mutableStateOf("") }; var message by remember { mutableStateOf("") }; var submitted by remember { mutableStateOf(false) }; var attempted by remember { mutableStateOf(false) }
-    val english = app.language == "EN"
-    Page(if (english) "Let's talk" else "Hablemos", subtitle = if (english) "Tell us what you need and our team will reply." else "Cuéntanos qué necesitas y nuestro equipo te responderá.", onBack = app::back) {
-        item { Entry(if (english) "Name" else "Nombre", name, { name = it }, error = attempted && name.isBlank()) }
-        item { Entry(if (english) "Email" else "Correo electrónico", email, { email = it }, error = attempted && !email.contains('@')) }
-        item { Entry(if (english) "Message" else "Consulta", message, { message = it }, singleLine = false, error = attempted && message.isBlank()) }
-        if (attempted && !submitted) item { Notice(if (english) "Complete your name, a valid email and your message." else "Completa tu nombre, un correo válido y tu consulta.") }
-        if (submitted) item { Notice(if (english) "Preview: your message is ready. Sending will be available after connecting the service." else "Vista previa: tu consulta está lista. El envío real estará disponible al conectar el servicio.") }
-        item { Action(if (english) "Send message" else "Enviar consulta") { attempted = true; submitted = name.isNotBlank() && email.contains('@') && message.isNotBlank() } }
     }
 }
 

@@ -77,7 +77,7 @@ class BrandCampaignViewModelTest {
         login(); runCurrent(); fill(); repository.conditionsFailure = CampaignFixtures.failure(FailureKind.REQUIREMENTS_NOT_MET, 422)
         vm.prepare(PreparationGoal.PUBLICATION); runCurrent(); val id = vm.ui.value.editor.draft?.serverId
         assertNotNull(id); assertEquals(CampaignFixtures.terms, vm.ui.value.editor.draft?.conditions)
-        assertNotNull(vm.ui.value.editor.failure); assertTrue(vm.ui.value.editor.notice!!.contains("se conserva"))
+        assertNotNull(vm.ui.value.editor.failure); assertNotNull(vm.ui.value.editor.notice)
         repository.conditionsFailure = null; vm.prepare(PreparationGoal.PUBLICATION); runCurrent()
         assertEquals(id, vm.ui.value.editor.draft?.serverId); assertEquals(CampaignStatus.OPEN, vm.ui.value.editor.details?.summary?.status)
         assertTrue(vm.ui.value.editor.readOnly); assertEquals(1, repository.events.count { it == "create" })

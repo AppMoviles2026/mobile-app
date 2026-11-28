@@ -44,7 +44,7 @@ class BrandCampaignViewModel @Inject constructor(private val useCases: CampaignU
                     is ApiResult.Failure -> if (active(revision)) mutableUi.update { it.copy(editor = CampaignEditorUiState(restoring = false, storageFailure = loaded.error)) }
                     is ApiResult.Success -> if (active(revision)) {
                         mutableUi.update { it.copy(editor = CampaignEditorUiState(draft = loaded.value ?: CampaignDraft(), restoring = false,
-                            notice = if (loaded.value != null) "Preparación local restaurada. Verifica el servidor antes de continuar." else null)) }
+                            notice = if (loaded.value != null) "Se recuperaron tus cambios. Comprueba el estado del borrador antes de continuar." else null)) }
                         if (loaded.value?.serverId != null) reconcile(revision)
                     }
                 }
@@ -119,9 +119,9 @@ class BrandCampaignViewModel @Inject constructor(private val useCases: CampaignU
             mutableUi.update { it.copy(editor = it.editor.copy(busy = false,
                 failure = (result as? ApiResult.Failure)?.error,
                 notice = if (result is ApiResult.Success) {
-                    if (result.value.summary.status == CampaignStatus.OPEN) "Publicación confirmada por el servidor. La campaña ya es visible para creadores."
+                    if (result.value.summary.status == CampaignStatus.OPEN) "Campaña publicada. Los creadores ya pueden verla."
                     else if (goal == PreparationGoal.CONDITIONS) "Condiciones guardadas. La campaña sigue en borrador, sin publicarse."
-                    else "Borrador guardado en el servidor. Completa las condiciones antes de publicar."
+                    else "Borrador guardado. Completa las condiciones antes de publicar."
                 } else partialNotice())) }
             if (result is ApiResult.Success) loadCampaigns(ui.value.campaigns.page?.page ?: 0)
         }
@@ -137,10 +137,10 @@ class BrandCampaignViewModel @Inject constructor(private val useCases: CampaignU
     private fun partialNotice(): String? {
         val draft = ui.value.editor.draft ?: return null
         return when {
-            ui.value.editor.details?.summary?.status == CampaignStatus.OPEN -> "La publicación sí fue confirmada por el servidor, pero queda un error local. Comprueba o recarga para conservar su estado en este dispositivo."
+            ui.value.editor.details?.summary?.status == CampaignStatus.OPEN -> "La campaña se publicó, pero no pudimos sincronizar tus cambios. Revísala en Mis campañas."
             draft.pending == DraftOperation.CREATE && draft.serverId == null -> "Creación sin confirmar. Reintenta con la misma clave y datos; no se iniciará otra campaña."
-            draft.pending == DraftOperation.PUBLISH -> "Las condiciones se conservaron. La publicación no está confirmada: comprueba el servidor."
-            draft.serverId != null -> "El borrador ${draft.serverId} se conserva. Los cambios locales pendientes no se presentan como guardados en el servidor."
+            draft.pending == DraftOperation.PUBLISH -> "Tus condiciones se conservaron. Comprueba si la campaña se publicó."
+            draft.serverId != null -> "El borrador sigue disponible. Algunos cambios aún están pendientes de guardarse."
             else -> null
         }
     }
@@ -168,7 +168,7 @@ class BrandCampaignViewModel @Inject constructor(private val useCases: CampaignU
                 val saved = checkpoint(revision, next, details)
                 if (active(revision)) mutableUi.update { it.copy(editor = it.editor.copy(busy = false,
                     failure = (saved as? ApiResult.Failure)?.error,
-                    notice = "Estado verificado: ${details.summary.status.name}. La edición local se conservó; recarga si deseas reemplazarla por los datos del servidor.")) }
+                    notice = "Estado actualizado. Tus cambios siguen en el formulario.")) }
             }
         }
     }
@@ -183,7 +183,7 @@ class BrandCampaignViewModel @Inject constructor(private val useCases: CampaignU
             if (result is ApiResult.Success && owned(result.value, id)) {
                 val stored = checkpoint(revision, result.value.toDraft(draft.conditions.zoneId), result.value)
                 if (active(revision)) mutableUi.update { it.copy(editor = it.editor.copy(busy = false, failure = (stored as? ApiResult.Failure)?.error,
-                    notice = "Se reemplazó la edición local por el borrador del servidor.")) }
+                    notice = "Se cargó el último borrador guardado.")) }
             } else mutableUi.update { it.copy(editor = it.editor.copy(busy = false, failure = (result as? ApiResult.Failure)?.error ?: malformed())) }
         }
     }
@@ -191,7 +191,7 @@ class BrandCampaignViewModel @Inject constructor(private val useCases: CampaignU
         if (!active() || editorJob?.isActive == true || ui.value.editor.busy) return
         if (ui.value.editor.draft?.let { it.serverId == null && it.creation != null } == true) {
             mutableUi.update { it.copy(editor = it.editor.copy(failure = ApiFailure(FailureKind.CONFLICT,
-                message = "Resuelve la creación pendiente antes de iniciar otra campaña; podría existir en el servidor."))) }; return
+                message = "Comprueba si se creó la campaña anterior antes de empezar otra."))) }; return
         }
         persistJob?.cancel(); val revision = generation; val accountId = owner!!.accountId
         mutableUi.update { it.copy(editor = it.editor.copy(busy = true)) }
@@ -291,13 +291,13 @@ class BrandCampaignViewModel @Inject constructor(private val useCases: CampaignU
                             else it.editor.copy(storageFailure = (cleared as ApiResult.Failure).error)) }
                     }
                     mutableUi.update { it.copy(detail = OwnedCampaignDetailUiState(), navigate = CampaignView.LIST,
-                        campaigns = it.campaigns.copy(notice = "Borrador eliminado del servidor; no se puede recuperar.")) }
+                        campaigns = it.campaigns.copy(notice = "Borrador eliminado.")) }
                 }
                 loadCampaigns()
             }
         }
     }
     private fun owned(value: CampaignDetails, id: UUID) = value.summary.id == id && value.summary.brandId == owner?.profileId
-    private fun malformed() = ApiFailure(FailureKind.MALFORMED_RESPONSE, message = "El servidor devolvió una campaña o página diferente a la solicitada.")
+    private fun malformed() = ApiFailure(FailureKind.MALFORMED_RESPONSE, message = "No se pudo consultar la campaña.")
     private fun changed() = ApiResult.Failure(ApiFailure(FailureKind.SESSION_CHANGED, message = "La sesión cambió; se descartó la operación anterior."))
 }

@@ -28,7 +28,7 @@ fun CreatorProfileScreen(
         }) { Text("Descartar") } }, dismissButton = { TextButton(onClick = { confirmReload = false; confirmDiscard = false }) { Text("Seguir editando") } })
     val busy = state.loading || state.saving
     Page("Perfil de creador", subtitle = "Administra tu contenido, audiencia y presentación para las empresas.", onBack = onBack) {
-        if (state.loading) item { LinearProgressIndicator(Modifier.fillMaxWidth()); Text("Cargando perfil del servidor…") }
+        if (state.loading) item { LinearProgressIndicator(Modifier.fillMaxWidth()); Text("Cargando perfil…") }
         state.failure?.let { failure -> item { IdentityFailureNotice(failure) } }
         state.notice?.let { item { Notice(it) } }
         if (state.profile != null) {
@@ -43,10 +43,10 @@ fun CreatorProfileScreen(
             if (state.accountRefreshFailed) item { Action("Actualizar nombre de la sesión", onRefreshAccount, secondary = true, enabled = !busy) }
             item { Action("Redes sociales", onSocial, secondary = true, enabled = !busy) }
         }
-        item { Action(if (state.profile == null) "Reintentar carga" else "Recargar desde el servidor",
+        item { Action(if (state.profile == null) "Reintentar carga" else "Actualizar perfil",
             { if (state.dirty) confirmReload = true else onReload() }, secondary = true, enabled = !busy) }
         if (state.failure?.kind in listOf(FailureKind.NETWORK, FailureKind.TIMEOUT) && state.profile != null)
-            item { Notice("Si falló la conexión al guardar, el resultado es incierto. Recarga para comprobar el perfil del servidor antes de asumir que se guardó.") }
+            item { Notice("Actualiza el perfil para comprobar si se guardaron tus cambios.") }
     }
 }
 
@@ -66,12 +66,12 @@ fun LinkedSocialAccountsScreen(
 ) {
     var confirmForget by remember(state.link?.authorizationId, state.link?.status) { mutableStateOf(false) }
     if (confirmForget) AlertDialog(onDismissRequest = { confirmForget = false }, title = { Text("¿Dejar de seguir este intento?") },
-        text = { Text("Esto solo quita el intento de esta pantalla. No cancela la autorización en el servidor ni desvincula cuentas. Un permiso concedido en el navegador todavía podría completarse.") },
+        text = { Text("El intento dejará de mostrarse aquí. Si ya diste permiso en el navegador, la cuenta todavía podría vincularse.") },
         confirmButton = { TextButton(onClick = { confirmForget = false; onForget() }) { Text("Dejar de seguir") } },
         dismissButton = { TextButton(onClick = { confirmForget = false }) { Text("Volver") } })
     val pending = state.link?.status == AuthorizationStatus.PENDING
     val starting = state.starting != null
-    Page("Redes sociales", subtitle = "Vincula Instagram o TikTok desde su página oficial. Los permisos se conceden al proveedor, no en esta pantalla.", onBack = onBack) {
+    Page("Redes sociales", subtitle = "Vincula una cuenta de Instagram o TikTok.", onBack = onBack) {
         if (state.loading) item { LinearProgressIndicator(Modifier.fillMaxWidth()); Text("Consultando cuentas vinculadas…") }
         state.failure?.let { item { IdentityFailureNotice(it) } }
         state.link?.let { link ->
@@ -84,7 +84,7 @@ fun LinkedSocialAccountsScreen(
                 }, style = MaterialTheme.typography.titleMedium)
                 link.message?.let { Text(it) }
                 link.failure?.let { IdentityFailureNotice(it) }
-                if (link.checking) { LinearProgressIndicator(Modifier.fillMaxWidth()); Text("Verificando con el servidor…") }
+                if (link.checking) { LinearProgressIndicator(Modifier.fillMaxWidth()); Text("Comprobando vinculación…") }
                 if (pending) {
                     Action("Comprobar resultado", onCheck, enabled = !link.checking && !starting)
                     if (link.failure?.code == "BROWSER_UNAVAILABLE") Action("Abrir navegador nuevamente", onReopenBrowser, secondary = true)
@@ -102,7 +102,6 @@ fun LinkedSocialAccountsScreen(
             }
         }
         item { Action("Actualizar cuentas", onReload, secondary = true, enabled = !state.loading) }
-        item { Notice("Puedes vincular más de una cuenta de la misma red. El servidor comprueba los permisos y evita duplicados. No se muestran métricas en esta fase.") }
         SocialPlatform.entries.forEach { platform -> item {
             Action(if (state.starting == platform) "Preparando autorización…" else "Vincular ${platform.displayLabel()}",
                 { onAuthorize(platform) }, enabled = !pending && !starting && state.link?.checking != true)
@@ -115,7 +114,7 @@ private fun SocialPlatform.displayLabel() = when (this) { SocialPlatform.INSTAGR
 @Composable
 internal fun IdentityFailureNotice(failure: ApiFailure) {
     val message = when (failure.code) {
-        "PROVIDER_NOT_CONFIGURED" -> "La red social no está configurada en el backend. El administrador debe configurar sus credenciales y URL de retorno."
+        "PROVIDER_NOT_CONFIGURED" -> "Esta red social no está disponible para vincular en este momento."
         "AUTHORIZATION_NOT_FOUND" -> "El intento no existe o pertenece a otra cuenta. Inicia sesión con la cuenta que comenzó la autorización."
         "SOCIAL_ACCOUNT_ALREADY_LINKED" -> "Esta cuenta social ya está vinculada. No se creó un duplicado."
         else -> failure.message

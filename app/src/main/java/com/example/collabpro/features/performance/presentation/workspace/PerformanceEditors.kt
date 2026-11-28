@@ -3,6 +3,8 @@ package com.example.collabpro.features.performance.presentation.workspace
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.OutlinedTextField
@@ -46,7 +48,8 @@ internal fun EvidenceEditor(state: PerformanceState, model: PerformanceViewModel
     var end by rememberSaveable { mutableStateOf("") }
     var observed by rememberSaveable { mutableStateOf("") }
     var submissionId by rememberSaveable { mutableStateOf<String?>(null) }
-    var metricInput by rememberSaveable { mutableStateOf("") }
+    var showMetrics by rememberSaveable { mutableStateOf(false) }
+    var metricValues by rememberSaveable { mutableStateOf(ArrayList(List(PerformanceInputs.metrics.size) { "" })) }
     var error by rememberSaveable { mutableStateOf<String?>(null) }
     Panel("Registrar evidencia manual") {
         if (!opened) {
@@ -72,24 +75,31 @@ internal fun EvidenceEditor(state: PerformanceState, model: PerformanceViewModel
         Input("Fin del periodo", end, { end = it }, enabled)
         Input("Fecha de observación", observed, { observed = it }, enabled)
         Action("Usar el instante actual", {
-            val now = model.now().toString()
+            val now = PerformanceInputs.dateInput(model.now())
             if (start.isBlank()) start = now
             end = now
             observed = now
         }, secondary = true, enabled = enabled)
-        Input("Contadores opcionales · VIEWS=125, LIKES=10", metricInput, { metricInput = it.take(300) }, enabled)
+        Action(if (showMetrics) "Ocultar métricas opcionales" else "Añadir métricas opcionales",
+            { showMetrics = !showMetrics }, secondary = true, enabled = enabled)
+        if (showMetrics) PerformanceInputs.metrics.forEachIndexed { index, metric ->
+            Input(metric.performanceLabel(), metricValues[index], { value ->
+                if (value.length <= 19 && value.all { it in '0'..'9' })
+                    metricValues = ArrayList(metricValues).apply { this[index] = value }
+            }, enabled, keyboard = KeyboardType.Number)
+        }
         error?.let { Notice(it) }
         Action("Guardar evidencia", {
             val urls = links.lineSequence().map(String::trim).filter(String::isNotEmpty).toList()
             val date = PerformanceInputs.instant(observed)
             val period = date?.let { PerformanceInputs.period(start, end, it) }
-            val counts = declaredCounts(metricInput)
+            val counts = declaredCounts(metricValues)
             error = when {
                 description.isBlank() -> "Escribe una descripción."
                 urls.any { PerformanceInputs.https(it) == null } || urls.size != urls.distinct().size -> "Ingresa enlaces HTTPS distintos y sin credenciales."
                 urls.size + state.uploads.size !in 1..10 -> "Incluye entre una y diez referencias."
                 date == null || date > model.now() || period == null -> "Usa fechas válidas con inicio ≤ fin ≤ observación ≤ ahora."
-                counts == null -> "Usa contadores enteros no negativos y nombres de métricas válidos."
+                counts == null -> "Revisa las cifras. Usa números enteros y no negativos."
                 else -> null
             }
             if (error == null && date != null && period != null && counts != null) {
@@ -101,16 +111,10 @@ internal fun EvidenceEditor(state: PerformanceState, model: PerformanceViewModel
     }
 }
 
-private fun declaredCounts(text: String): Map<String, Long>? {
-    if (text.isBlank()) return emptyMap()
-    val metrics = linkedMapOf<String, Long>()
-    for (entry in text.split(',')) {
-        val fields = entry.split('=', limit = 2)
-        val name = fields.first().trim().uppercase()
-        val value = fields.getOrNull(1)?.trim()?.toLongOrNull() ?: return null
-        if (name !in PerformanceInputs.metrics || value < 0 || metrics.put(name, value) != null) return null
+private fun declaredCounts(values: List<String>): Map<String, Long>? = buildMap {
+    PerformanceInputs.metrics.zip(values).forEach { (metric, value) ->
+        if (value.isNotBlank()) put(metric, value.toLongOrNull() ?: return null)
     }
-    return metrics
 }
 
 @Composable
@@ -131,8 +135,8 @@ internal fun ReviewEditor(entry: Evidence, model: PerformanceViewModel, enabled:
 @Composable
 internal fun PeriodEditor(period: Period?, model: PerformanceViewModel, enabled: Boolean) {
     var expanded by rememberSaveable { mutableStateOf(false) }
-    var start by rememberSaveable { mutableStateOf(period?.start?.toString().orEmpty()) }
-    var end by rememberSaveable { mutableStateOf(period?.end?.toString().orEmpty()) }
+    var start by rememberSaveable { mutableStateOf(period?.start?.let(PerformanceInputs::dateInput).orEmpty()) }
+    var end by rememberSaveable { mutableStateOf(period?.end?.let(PerformanceInputs::dateInput).orEmpty()) }
     var error by rememberSaveable { mutableStateOf(false) }
     Panel("Periodo de atribución") {
         if (!expanded) {
@@ -142,7 +146,7 @@ internal fun PeriodEditor(period: Period?, model: PerformanceViewModel, enabled:
         TimestampHint()
         Input("Desde · inclusive", start, { start = it }, enabled)
         Input("Hasta · exclusivo", end, { end = it }, enabled)
-        Action("Usar ahora como fin", { end = model.now().toString() }, secondary = true, enabled = enabled)
+        Action("Usar ahora como fin", { end = PerformanceInputs.dateInput(model.now()) }, secondary = true, enabled = enabled)
         if (error) Notice("Completa ambas fechas. El fin debe ser igual o posterior al inicio y hasta el instante actual.")
         Action("Aplicar periodo", {
             val next = PerformanceInputs.period(start, end, model.now())
@@ -174,8 +178,8 @@ internal fun MechanismEditor(destinations: List<Destination>, model: Performance
         Picker("Tipo", MechanismKind.entries, type, enabled, { it.name.performanceLabel() }) { kind = it.name }
         Input("Nombre", label, { label = it.take(120) }, enabled)
         if (type == MechanismKind.LINK) {
-            if (destinations.isEmpty()) Notice("El servidor no ofrece destinos aprobados. Puedes generar un código.")
-            else Picker("Destino aprobado", destinations, destination, enabled, { "${it.id} · ${it.url}" }) { destinationId = it.id }
+            if (destinations.isEmpty()) Notice("No hay destinos disponibles. Puedes generar un código.")
+            else Picker("Destino aprobado", destinations, destination, enabled, { it.url }) { destinationId = it.id }
         }
         Action("Generar ${type.name.performanceLabel().lowercase()}", {
             model.create(type, label.trim(), if (type == MechanismKind.LINK) destination else null)
@@ -189,23 +193,28 @@ internal fun InteractionEditor(mechanism: Mechanism, evidence: List<Evidence>?, 
     var kind by rememberSaveable { mutableStateOf(InteractionType.INQUIRY.name) }
     var date by rememberSaveable { mutableStateOf("") }
     var dateError by rememberSaveable { mutableStateOf(false) }
+    var exactDate by rememberSaveable { mutableStateOf<String?>(null) }
     LaunchedEffect(lastInteraction) {
-        if (lastInteraction != null) { selectedId = null; date = ""; dateError = false }
+        if (lastInteraction != null) { selectedId = null; date = ""; exactDate = null; dateError = false }
     }
     val choice = evidence?.firstOrNull { it.id.toString() == selectedId }
     val types = if (mechanism.kind == MechanismKind.CODE) InteractionType.entries else listOf(InteractionType.INQUIRY)
     Panel("Declarar interacción con evidencia") {
         Action("Consultar evidencia elegible", model::loadSupportingEvidence, secondary = true, enabled = enabled)
-        if (evidence?.isEmpty() == true) Notice("No hay evidencia del mismo tipo de demostración y sin rechazo para esta colaboración.")
+        if (evidence?.isEmpty() == true) Notice("No hay evidencia disponible para respaldar esta interacción.")
         if (!evidence.isNullOrEmpty()) {
             Picker("Tipo", types, InteractionType.valueOf(kind), enabled, { it.name.performanceLabel() }) { kind = it.name }
             Picker("Evidencia", evidence, choice, enabled, { it.description.take(110) }) { selectedId = it.id.toString() }
             TimestampHint()
-            Input("Instante del hecho", date, { date = it }, enabled)
-            Action("Usar ahora", { date = model.now().toString() }, secondary = true, enabled = enabled)
+            Input("Cuándo ocurrió", date, { date = it; exactDate = null }, enabled)
+            Action("Usar ahora", {
+                val now = model.now()
+                exactDate = now.toString()
+                date = PerformanceInputs.dateInput(now)
+            }, secondary = true, enabled = enabled)
             if (dateError) Notice("La fecha debe estar entre la creación del mecanismo y el instante actual.")
             Action("Registrar declaración", {
-                val at = PerformanceInputs.instant(date)
+                val at = PerformanceInputs.instant(exactDate ?: date)
                 dateError = at == null || at < mechanism.createdAt || at > model.now()
                 if (!dateError && at != null && choice != null) model.record(mechanism, InteractionType.valueOf(kind), at, choice)
             }, enabled = enabled && choice != null)
@@ -214,12 +223,13 @@ internal fun InteractionEditor(mechanism: Mechanism, evidence: List<Evidence>?, 
 }
 
 @Composable
-private fun TimestampHint() { Text("Usa fecha y hora ISO 8601 UTC, por ejemplo 2026-11-27T16:00:00Z.") }
+private fun TimestampHint() { Text("Formato de fecha y hora: DD/MM/AAAA HH:MM. Usa la hora de tu dispositivo.") }
 
 @Composable
-private fun Input(label: String, value: String, change: (String) -> Unit, enabled: Boolean, multiline: Boolean = false) {
+private fun Input(label: String, value: String, change: (String) -> Unit, enabled: Boolean,
+    multiline: Boolean = false, keyboard: KeyboardType = KeyboardType.Text) {
     OutlinedTextField(value, change, label = { Text(label) }, enabled = enabled, singleLine = !multiline,
-        maxLines = if (multiline) 4 else 1, modifier = Modifier.fillMaxWidth())
+        maxLines = if (multiline) 4 else 1, modifier = Modifier.fillMaxWidth(), keyboardOptions = KeyboardOptions(keyboardType = keyboard))
 }
 
 @Composable

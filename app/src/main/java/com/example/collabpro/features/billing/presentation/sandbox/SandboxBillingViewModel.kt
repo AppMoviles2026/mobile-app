@@ -423,7 +423,7 @@ class SandboxBillingViewModel @Inject constructor(
             }
             if (scope() != checked) return@runForOwner
             ignoreNextRefresh = destination
-            mutableUi.value = ui.value.copy(navigation = destination, notice = "Estado consultado en el servidor.")
+            mutableUi.value = ui.value.copy(navigation = destination, notice = "Estado actualizado.")
         }
     }
 

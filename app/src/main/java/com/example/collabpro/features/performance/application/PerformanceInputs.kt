@@ -3,6 +3,10 @@ package com.example.collabpro.features.performance.application
 import com.example.collabpro.features.performance.domain.model.Period
 import java.net.URI
 import java.time.Instant
+import java.time.LocalDateTime
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
+import java.time.format.ResolverStyle
 
 object PerformanceInputs {
     private val videoPath = Regex("/@[^/]+/video/([0-9]{1,40})/?")
@@ -25,7 +29,17 @@ object PerformanceInputs {
         ?.let { runCatching { URI(it) }.getOrNull() }
         ?.takeIf { it.host != null && it.rawUserInfo == null }
 
-    fun instant(text: String): Instant? = runCatching { Instant.parse(text.trim()) }.getOrNull()
+    private val localDate = DateTimeFormatter.ofPattern("dd/MM/uuuu HH:mm[:ss]").withResolverStyle(ResolverStyle.STRICT)
+
+    fun dateInput(instant: Instant): String = instant.atZone(ZoneId.systemDefault()).format(localDate)
+
+    fun instant(text: String, zone: ZoneId = ZoneId.systemDefault()): Instant? {
+        val value = text.trim()
+        return runCatching {
+            val local = LocalDateTime.parse(value, localDate)
+            local.toInstant(zone.rules.getValidOffsets(local).single())
+        }.getOrNull() ?: runCatching { Instant.parse(value) }.getOrNull()
+    }
 
     fun period(start: String, end: String, latest: Instant): Period? {
         val from = instant(start) ?: return null
